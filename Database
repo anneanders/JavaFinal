@@ -1,0 +1,187 @@
+
+package edu.frontrange.csc241.a9.database;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.ServiceConfigurationError;
+
+/**
+ * Maintain the connection, and provide the operations on a database.
+ *
+ * @author	Dr. Bruce K. Haddon, Instructor
+ * @version	1.3, 2013-03-21, CSC-241 Assignment 9, Exercise 28.4
+ */
+public class Database
+{
+/**
+ * The Internet scheme name (some times call the "protocol") for URL's
+ * connecting to this base. The format of a URL is:
+ *        scheme://domain:port/path?query_string#fragment_id
+ */
+private static final String SCHEME = "mysql";
+
+/**
+ * The IP port on the server at which this database is listening.
+ */
+private static final int PORT = 3306;
+
+/**
+ *	Define the JDBC connection URL to use, if an external database is used.
+ */
+private String connectionURL;
+
+/**
+ *	Keep the value of the database connection
+ */
+private Connection connection;
+
+/**
+ * Map to keep track of prepared statements that have already been prepared,
+ * so as to be able to avoid preparing them more than once.
+ */
+private Map<String, PreparedStatement> preparedStatements;
+
+/**
+ * Initialize a connection to database, so that this class can wrap all
+ * the database operations. If the database is external, it will have to be
+ * created and the server initialized before using this class. If the database
+ * is external and is to be re-initialized, this will also have to be done
+ * outside the application.
+ *
+ * @param dbName		name of the database
+ * @param server		name of the server if this database is not embedded
+ *								in the application
+ * @param user			if needed, the user name
+ * @param password		and the password for that user.
+ */
+@SuppressWarnings("UnusedAssignment")
+public Database(String dbName, String server, String user, String password)
+{
+	if( dbName == null || server == null )
+		throw new NullPointerException("dbName or server are null");
+
+	/* Connect to the database. */
+	connection = null;
+	try
+	{
+		/* The database is offered via a service external to the application.
+		   If the database is to be re-initialized, then external action
+		   needs to be taken to drop the database or deleted the directories
+		   it is using.
+
+		   Create the URL needed to connect to that service. */
+		connectionURL =
+				"jdbc:" + SCHEME + "://" + server + ":" + PORT + "/" + dbName;
+		connection = user == null ?
+				DriverManager.getConnection(connectionURL) :
+				DriverManager.getConnection(connectionURL, user, password);
+	}
+	catch( SQLException sqle )
+	{
+		errorPrint(sqle);
+		connection = null;
+		throw new AssertionError("Failure to connect to database", sqle);
+	}
+
+	/* Map in which to remember the statements that have been prepared. */
+	preparedStatements = new HashMap<>();
+}
+
+/**
+ * Ask the database to prepare a statement.
+ *
+ * @param statement		the SQL statement
+ * @return				the prepared statement if it succeeds
+ */
+public PreparedStatement prepareStatement(String statement)
+{
+
+	/* Get the prepared statement from the map of prepared statements. */
+	PreparedStatement preparedStatement = preparedStatements.get(statement);
+
+	/* If there is not already a prepared statement corresponding to this SQL
+	   statement, then prepare it, and save it in the map. */
+	if( preparedStatement == null )
+	{
+		try
+		{
+			preparedStatement =  connection.prepareStatement(statement);
+			preparedStatements.put(statement, preparedStatement);
+		} catch( SQLException sqle )
+		{
+			errorPrint(sqle);
+			throw new AssertionError("Prepared statement failure", sqle);
+		}
+	}
+	return preparedStatement;
+}
+
+/**
+ * Close the connection to the database (and close all the prepared statements).
+ */
+public void close()
+{
+	/* For each of the prepared statements that have been used, get the
+	   statement and close it. */
+	for( Map.Entry<String, PreparedStatement> entry :
+		preparedStatements.entrySet() )
+		try
+		{
+			entry.getValue().close();
+		} catch( SQLException sqle )
+		{
+			errorPrint(sqle);
+		}
+	preparedStatements = null;
+
+	/* Now close the connection to the database itself. */
+	try
+	{
+		connection.close();
+		connection = null;
+	} catch( SQLException sqle )
+	{
+			errorPrint(sqle);
+	}
+}
+
+/**
+ * Print out the occurrence of a given Throwable, then rethrow it as the.
+ * cause of a ServiceConfigurationError.
+ *
+ * @param e		the given Throwable
+ * @throws ServiceConfigurationError with the given Throwable as the cause
+ */
+private static void errorPrint(Throwable e)
+{
+	if( e instanceof SQLException )
+		SQLExceptionPrint((SQLException) e);
+	else
+	{
+		System.out.println("A non SQL error occurred.");
+		throw new ServiceConfigurationError("A non SQL error occured.", e);
+	}
+}
+
+/**
+ * Iterates through a stack of SQLExceptions.
+ *
+ * @param sqle		the given stack of SQLExceptions
+ */
+@SuppressWarnings("AssignmentToMethodParameter")
+private static void SQLExceptionPrint(SQLException sqle)
+{
+	while( sqle != null )
+	{
+		System.out.println("\n---SQLException Caught---\n");
+		System.out.println("SQLState:   " + (sqle).getSQLState());
+		System.out.println("Severity: " + (sqle).getErrorCode());
+		System.out.println("Message:  " + (sqle).getMessage());
+		sqle = sqle.getNextException();
+	}
+}
+}
