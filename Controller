@@ -1,0 +1,795 @@
+package edu.frontrange.csc241.a9.controller;
+
+import edu.frontrange.csc241.a9.model.Model;
+import edu.frontrange.csc241.a9.view.View;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.text.DateFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+
+import static edu.frontrange.csc241.a9.view.View.UNFILLED_FIELD;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
+/**
+ * The controller provides the methods that need to be executed when the user
+ * performs some action on the View. In particular, it contains the method for
+ * verifying, and standardizing the representation of, the input values.
+ *
+ * @author	Dr. Bruce K. Haddon, Instructor
+ * @version	1.3, 2013-03-21, CSC-241 Assignment 9, Exercise 28.4
+ */
+public class Controller {
+
+    /**
+     * Label field width (in "characters").
+     */
+    private static final int LABEL_FIELD_WIDTH = 15;
+
+    /**
+     * Input text field width (in "characters").
+     */
+    private static final int INPUT_FIELD_WIDTH = 20;
+
+    /**
+     * The first field of an SNN starts at the beginning of the SSN, and ends of
+     * the defined end of the first field.
+     */
+    private static final int SNN_FIRST_FIELD = 3;
+
+    /**
+     * The second field of an SNN starts at the end of the first field of the
+     * SSN, and ends of the defined end of the second field.
+     */
+    private static final int SNN_SECOND_FIELD = 5;
+
+    /**
+     * The third field of an SNN starts at the end of the second field of the
+     * SSN, and ends of the defined length of the SNN.
+     */
+    private static final int SNN_TOTAL_LENGTH = 9;
+
+    /**
+     * Dash character.
+     */
+    private static final char DASH = '-';
+
+    /**
+     * Period character.
+     */
+    private static final char PERIOD = '.';
+
+    /**
+     * Space character.
+     */
+    private static final char SPACE = ' ';
+
+    /**
+     * Currency character (default)
+     */
+    private static char currency_sign
+            = DecimalFormatSymbols.getInstance().getCurrencySymbol().charAt(0);
+
+    /**
+     * The character that is used to group numbers (usually into thousands)
+     */
+    private static final char SEPARATOR
+            = DecimalFormatSymbols.getInstance().getGroupingSeparator();
+
+    /**
+     * The input format of a date may be any of the following formats.
+     */
+    private static final SimpleDateFormat[] FORMATS
+            = {
+                new SimpleDateFormat("MM/dd/yy"), // 0
+                new SimpleDateFormat("MM/dd/yyyy"), // 1
+                new SimpleDateFormat("dd.MM.yy"), // 2
+                new SimpleDateFormat("dd.MM.yyyy"), // 3
+                new SimpleDateFormat("yyyy-MM-dd"), // 4
+                new SimpleDateFormat("MMM dd yy"), // 5
+                new SimpleDateFormat("MMM dd yyyy"), // 6
+                new SimpleDateFormat("MMM dd, yy"), // 7
+                new SimpleDateFormat("MMM dd, yyyy"), // 8
+                new SimpleDateFormat("dd MMM yy"), // 9
+                new SimpleDateFormat("dd MMM yyyy"), // 10
+                new SimpleDateFormat("dd MMM, yy"), // 11
+                new SimpleDateFormat("dd MMM, yyyy"), // 12
+            };
+
+    /**
+     * The standard default format for a date is the indicated format within the
+     * given list.
+     */
+    private static final int DEFAULT_DATE_FORMAT = 4;
+
+    /**
+     * The flag to indicated that an action listener has been dispatched, in
+     * order to prevent the possibility of attempting to display to messages to
+     * the user simultaneously.
+     */
+    private boolean dispatched;
+
+    /**
+     * The view for which this is the controller.
+     */
+    private View view;
+
+    /**
+     * The model (data) for the applications.
+     */
+    private final Model model;
+
+    /**
+     * Constructor.
+     *
+     * @param model	the model that provides access to the application data
+     */
+    public Controller(Model model) {
+        this.model = model;
+    }
+
+    /**
+     * Set the view that this controller is to control.
+     *
+     * @param view	the view that presents the GUI.
+     */
+    public void setView(View view) {
+        this.view = view;
+    }
+
+    /**
+     * Get the view controlled by this controller.
+     *
+     * @return	the view controlled by this controller
+     */
+    public View getView() {
+        return this.view;
+    }
+    JTextField textField;
+
+    /**
+     * Get the model that is being used by this controller.
+     *
+     * @return	the model
+     */
+    public Model getModel() {
+        return model;
+    }
+
+//------------------------------ Event methods ---------------------------------
+    /**
+     * Extract an input from a JTextField that has given arise to an event,
+     * validate the input, display the validated input in the field, and return
+     * the extracted value. If the value does not pass validation, throw a
+     * ValidationExeption.
+     *
+     * @param e	the event from a SocialSecurityNumber field
+     * @return	the SocialSecurityNumber if valid
+     * @throws ValidationException is the input does not pass validation
+     */
+    public String SSNField(ActionEvent e) throws ValidationException {
+        JTextField textField = (JTextField) e.getSource();
+        textField.setBackground(View.UNFILLED_FIELD);
+        String socialSecurityNumber = validateSSN(textField.getText());
+        if (socialSecurityNumber != null && !socialSecurityNumber.isEmpty()) {
+            textField.setText(socialSecurityNumber);
+            textField.setBackground(View.FILLED_FIELD);
+        }
+        return socialSecurityNumber;
+    }
+
+    /**
+     * Extract an input from a JTextField that has given arise to an event,
+     * validate the input, display the validated input in the field, and return
+     * the extracted value. If the value does not pass validation, throw a
+     * ValidationExeption.
+     *
+     * @param e	the event from a Date field
+     * @return	the Date if valid
+     * @throws ValidationException is the input does not pass validation
+     */
+    public Date dateField(ActionEvent e) throws ValidationException {
+        JTextField textField = (JTextField) e.getSource();
+        textField.setBackground(View.UNFILLED_FIELD);
+        Date date = validateDate(textField.getText());
+        String dateString = FORMATS[DEFAULT_DATE_FORMAT].format(date);
+        textField.setText(dateString);
+        textField.setBackground(View.FILLED_FIELD);
+        return date;
+    }
+
+    /**
+     * Extract an input from a JTextField that has given arise to an event,
+     * validate the input, display the validated input in the field, and return
+     * the extracted value. If the value does not pass validation, throw a
+     * ValidationExeption.
+     *
+     * @param e	the event from a Name field
+     * @return	the valid name
+     */
+    public String nameField(ActionEvent e) {
+        JTextField textField = (JTextField) e.getSource();
+        textField.setBackground(View.UNFILLED_FIELD);
+        String name = validateName(textField.getText());
+        if (name != null && !name.isEmpty()) {
+            textField.setText(name);
+            textField.setBackground(View.FILLED_FIELD);
+        }
+        return name;
+    }
+
+    /**
+     * Extract an input from a JTextField that has given arise to an event,
+     * validate the input, display the validated input in the field, and return
+     * the extracted value. If the value does not pass validation, throw a
+     * ValidationExeption.
+     *
+     * @param e	the event from a integer field
+     * @return	the integer value if valid
+     * @throws ValidationException is the input does not pass validation
+     */
+    public int integerField(ActionEvent e) throws ValidationException {
+        JTextField textField = (JTextField) e.getSource();
+        textField.setBackground(View.UNFILLED_FIELD);
+        int value = validateInteger(textField.getText());
+        textField.setText(String.format("%,d", value));
+        textField.setBackground(View.FILLED_FIELD);
+        return value;
+    }
+
+    /**
+     * Extract an input from a JTextField that has given arise to an event,
+     * validate the input, display the validated input in the field, and return
+     * the extracted value. If the value does not pass validation, throw a
+     * ValidationExeption.
+     *
+     * @param e	the event from a currency field
+     * @return	the double value if valid
+     * @throws ValidationException is the input does not pass validation
+     */
+    public double currencyField(ActionEvent e) throws ValidationException {
+        JTextField textField = (JTextField) e.getSource();
+        textField.setBackground(View.UNFILLED_FIELD);
+        double value = validateCurrency(textField.getText());
+        textField.setText(String.format("%c%,.2f", currency_sign, value));
+        textField.setBackground(Color.WHITE);
+        return value;
+    }
+
+//---------------------------- Validation methods ------------------------------
+    /**
+     * Validate a SocialSecurityNumber. The input should contain only digits,
+     * dashes, and spaces. The SocialSecurityNumber is valid if it contains the
+     * correct number of digits. The returned value contains those digits, with
+     * hyphens in the standard places.
+     *
+     * @param input	the input string
+     * @return	the reformatted SocialSecurityNumber
+     * @throws ValidationException if the input String contains anything but the
+     * permitted characters, or does not contain the correct number of digits
+     */
+    private static String validateSSN(String input) throws ValidationException {
+        String entered;
+        if (input == null || (entered = input.trim()).isEmpty()) {
+            return null;
+        }
+
+        char[] chars = entered.toCharArray();
+        StringBuilder sb = new StringBuilder(chars.length);
+        boolean error = false;
+        for (char c : chars) {
+            /* Ignore dashes and white space. */
+            if (Character.getType(c) == Character.DASH_PUNCTUATION
+                    || Character.isWhitespace(c)) {
+                continue;
+            }
+            if (Character.isDigit(c)) {
+                sb.append(c);
+            } else {
+                error = true;
+            }
+        }
+
+        if (error) {
+            throw new ValidationException("SSN contains non-numeric characters");
+        }
+
+        if (sb.length() > SNN_TOTAL_LENGTH) {
+            throw new ValidationException("SSN contains too many digits");
+        }
+
+        if (sb.length() < SNN_TOTAL_LENGTH) {
+            throw new ValidationException("SSN contains too few digits");
+        }
+
+        return sb.substring(0, SNN_FIRST_FIELD) + DASH
+                + sb.substring(SNN_FIRST_FIELD, SNN_SECOND_FIELD) + DASH
+                + sb.substring(SNN_SECOND_FIELD, SNN_TOTAL_LENGTH);
+    }
+
+    /**
+     * Given an input String, validates that is represents an integer. If not, a
+     * ValidationException is thrown.
+     *
+     * @param input	String perhaps representing an integer
+     * @return	a String representing the integer value, or null if the input is
+     * null or empty
+     * @throws ValidationException if the input String does not represent an
+     * integer
+     */
+    private static int validateInteger(String input) throws ValidationException {
+        String entered;
+        if (input != null && !(entered = input.trim()).isEmpty()) {
+            /* Remove any group separators. */
+            char[] chars = entered.toCharArray();
+            StringBuilder sb = new StringBuilder(chars.length);
+            for (char c : chars) {
+                if (c != SEPARATOR) {
+                    sb.append(c);
+                }
+            }
+            /* What remains should be an acceptable representation of a integer
+             value. */
+            try {
+                int i = Integer.parseInt(sb.toString());
+                if (i >= 0) {
+                    return i;
+                }
+            } catch (NumberFormatException e) {
+            }
+        }
+
+        throw new ValidationException("Number not understood");
+    }
+
+    /**
+     * Validate a Date. The input should contain a date in one of the approved
+     * formats. The returned value is a Date object, representing that date.
+     *
+     * @param input	the input string
+     * @return	the Date represented.
+     * @throws ValidationException if the input String is not recognizable as
+     * one. of the approved date formats
+     */
+    private static Date validateDate(String input) throws ValidationException {
+        Date date = null;
+        String entered;
+        if (input != null && !(entered = input.trim()).isEmpty()) {
+            /* Try each of the different formats, looking for one that works. */
+            for (DateFormat f : FORMATS) {
+                try {
+                    f.setLenient(true);	// ensure the format is interpreted leniently
+                    date = f.parse(entered);
+                    break;				// done if this format worked
+                } catch (ParseException pe) {
+                    /* This format did not work; try the next one. */
+                }
+            }
+        }
+
+        /* If a date format that works has been found, then return it. */
+        if (date != null) {
+            return date;
+        }
+
+        throw new ValidationException("Given date format not understood");
+    }
+
+    /**
+     * Method to validate a name. Names may occur as the names of people, or of
+     * departments.
+     * <p>
+     * Any series of white space characters is replaced by a single actual space
+     * character. All letters are converted to lower case, except that those
+     * that follow white space, or other dashes or punctuation, which are
+     * converted to upper case. </p>
+     * <p>
+     * If the "name" consists of single letters separated by spaces, or
+     * separated by periods, it is assumed to be an abbreviation (acronym), and
+     * the spaces are replaced by periods.
+     *
+     * @param input	the input string
+     * @return	the name represented
+     */
+    private static String validateName(String input) {
+        String entered;
+        if (input == null || (entered = input.trim()).isEmpty()) {
+            return "";
+        }
+
+        char[] chars = entered.toCharArray();
+        StringBuilder sb = new StringBuilder(chars.length);
+
+        boolean makeNextUpperCase = true;
+        boolean whitespace = false;
+        for (char next : chars) {
+            /* Make a copy of the character. */
+            char c = next;
+
+            /* Ignore multiple white space characters. */
+            if (Character.isWhitespace(c)) {
+                whitespace = true;
+                continue;
+            }
+
+            /* If the next character comes after a space, or a dash, or is at
+             the beginning of the name, put it in uppercase, otherwise put it
+             in lower case. */
+            c = makeNextUpperCase || whitespace
+                    ? Character.toTitleCase(c) : Character.toLowerCase(c);
+
+            /* If there were any white space characters, put a single space into
+             the result (the beginning and end whitespace characters have already
+             been trimmed). */
+            if (whitespace) {
+                sb.append(SPACE);
+            }
+            whitespace = false;
+
+            /*	And also the next character. */
+            sb.append(c);
+
+            /* Ensure a capital after a dash or other punctuation character as well. */
+            makeNextUpperCase = Character.getType(c) == Character.DASH_PUNCTUATION
+                    | Character.getType(c) == Character.OTHER_PUNCTUATION;
+        }
+
+        /* Abbreviations can be entered by separating each single letter by a space
+         or by a period. Spaces will be replace by periods, and the whole followed
+         by a period. */
+        boolean abbreviation = true;
+        for (int i = 1; i < sb.length(); i += 2) {
+            abbreviation &= (sb.charAt(i) == SPACE || sb.charAt(i) == PERIOD);
+        }
+        if (abbreviation) {
+            for (int i = 0; i < sb.length(); ++i) {
+                if (sb.charAt(i) == SPACE) {
+                    sb.setCharAt(i, PERIOD);
+                }
+            }
+            if (sb.charAt(sb.length() - 1) != PERIOD) {
+                sb.append(PERIOD);
+            }
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * A currency value is validated by seeing if it can be parsed by Double. If
+     * so, it is returned as a positive double value.
+     * <p>
+     * A currency value may start with a currency symbol, and contain grouping
+     * characters. These are ignored.
+     *
+     * @param input	String representing a currency value
+     * @return	a double representing that value if valid
+     * @throws ValidationException if the currency value is invalid.
+     */
+    private static double validateCurrency(String input) throws ValidationException {
+        String entered;
+        if (input != null && !(entered = input.trim()).isEmpty()) {
+            char[] chars = entered.toCharArray();
+
+            /* Check for a currency symbol. */
+            if (Character.getType(chars[0]) == Character.CURRENCY_SYMBOL) {
+                currency_sign = chars[0];
+                chars[0] = '0';
+            }
+
+            /* Remove any group separators. */
+            StringBuilder sb = new StringBuilder(chars.length);
+            for (char c : chars) {
+                if (c != SEPARATOR) {
+                    sb.append(c);
+                }
+            }
+
+            /* What remains should be an acceptable representation of a double
+             value. */
+            try {
+                double d = Double.parseDouble(sb.toString());
+                if (d >= 0.0) {
+                    return d;
+                }
+            } catch (NumberFormatException nfe) {
+            }
+        }
+        throw new ValidationException("Number not understood");
+    }
+
+    /**
+     * A new label and input field is added to the given panel (for which a
+     * BoxLayout is provided if the input field does not already have a
+     * BoxLayout layout manager). The label is as given, and the input field
+     * will be an editable JTextField, to which the given ActionListener will be
+     * attached.
+     * <p>
+     * Lost focus events on the the JTextField are redirected to the given
+     * ActionListener.
+     *
+     * @param panel	the JPanel container
+     * @param label	the label for the input field
+     * @param action	the action for the input field.
+     */
+    public void populateNextField(JPanel panel, String label, String data, ActionListener action) {
+        /*	The layout for the "field" is just left-to-right, with each having two
+         elements. */
+        JPanel input = new JPanel();
+        input.setLayout(new FlowLayout());
+
+        /* The text field to the left is just being used as a label, so is set
+         to be uneditable. */
+        JTextField labelField = new JTextField(LABEL_FIELD_WIDTH);
+        labelField.setHorizontalAlignment(JTextField.RIGHT);
+        labelField.setText(label);
+        /* Do not allow this field to be edited, or to gain the focus.
+         This is effectively making this into a label-like JLabel. */
+        labelField.setEditable(false);
+        labelField.setFocusable(false);
+        /* ... and a border is not needed, either. */
+        labelField.setBorder(BorderFactory.createEmptyBorder());
+        input.add(labelField);
+
+        /* The text field to the right is where the user enters the data. This
+         text field must be editable, and have a
+         */
+        JTextField inputField = new JTextField(INPUT_FIELD_WIDTH);
+        inputField.setHorizontalAlignment(JTextField.LEFT);
+        inputField.setText(data);
+        if (label.equals("Social Security Number")) {
+            inputField.setEditable(false);
+        } else {
+            inputField.setEditable(true);
+        }
+        inputField.setFocusable(true);
+        inputField.setBorder(BorderFactory.createEmptyBorder());
+        inputField.setBackground(UNFILLED_FIELD);
+
+        /* This code is a nicety: it redirects focus lost events to be action
+         events, causing the invocation of the action listeners. The intent is
+         that if the user moves the cursor to another field, with the mouse or
+         using TAB, the field acts as if ENTER has been typed into the end of
+         the field. This is suppressed if the field is actually empty. */
+        inputField.addFocusListener(new FocusRedirect());
+
+        /* Add the display field to the right of the the one serving as the label. */
+        input.add(inputField);
+        if (action != null) {
+            inputField.addActionListener(
+                    new ActionListenerWrapper(action));
+        }
+
+        /* This code is a nicety: it redirects focus lost events to be action
+         events, causing the invocation of the action listeners. The intent is
+         that if the user moves the cursor to another field, with the mouse or
+         using TAB, the field acts as if ENTER has been typed into the end of
+         the field. This is suppressed if the field is actually empty. */
+        inputField.addFocusListener(new FocusRedirect());
+
+        /* Add the display field to the right of the the one serving as the label. */
+        input.add(inputField);
+        /* Add this entire new panel containing the two fields to the panel given
+         in the parameter list. */
+        if (!(panel.getLayout() instanceof BoxLayout)) {
+            panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
+        }
+        panel.add(input);
+    }
+
+    public void populateNextPayField(JPanel panel, String label, ActionListener action) {
+        /*	The layout for the "field" is just left-to-right, with each having two
+         elements. */
+        JPanel input = new JPanel();
+        input.setLayout(new FlowLayout());
+        
+                
+        /* The text field to the left is just being used as a label, so is set
+         to be uneditable. */
+        JTextField labelField = new JTextField(LABEL_FIELD_WIDTH);
+        labelField.setHorizontalAlignment(JTextField.RIGHT);
+        labelField.setText(label);
+        /* Do not allow this field to be edited, or to gain the focus.
+         This is effectively making this into a label-like JLabel. */
+        labelField.setEditable(false);
+        labelField.setFocusable(false);
+        /* ... and a border is not needed, either. */
+        labelField.setBorder(BorderFactory.createEmptyBorder());
+        input.add(labelField);
+
+        /* The text field to the right is where the user enters the data. This
+         text field must be editable, and have a
+         */
+        JTextField inputField = new JTextField(INPUT_FIELD_WIDTH);
+        inputField.setHorizontalAlignment(JTextField.LEFT);
+        inputField.setText("");
+        if (label.equals("Social Security Number")) {
+            inputField.setEditable(false);
+        } else {
+            inputField.setEditable(true);
+        }
+        inputField.setFocusable(true);
+        inputField.setBorder(BorderFactory.createEmptyBorder());
+        inputField.setBackground(UNFILLED_FIELD);
+
+        /* This code is a nicety: it redirects focus lost events to be action
+         events, causing the invocation of the action listeners. The intent is
+         that if the user moves the cursor to another field, with the mouse or
+         using TAB, the field acts as if ENTER has been typed into the end of
+         the field. This is suppressed if the field is actually empty. */
+        inputField.addFocusListener(new FocusRedirect());
+
+        /* Add the display field to the right of the the one serving as the label. */
+        input.add(inputField);
+        if (action != null) {
+            inputField.addActionListener(
+                    new ActionListenerWrapper(action));
+        }
+
+        /* This code is a nicety: it redirects focus lost events to be action
+         events, causing the invocation of the action listeners. The intent is
+         that if the user moves the cursor to another field, with the mouse or
+         using TAB, the field acts as if ENTER has been typed into the end of
+         the field. This is suppressed if the field is actually empty. */
+        inputField.addFocusListener(new FocusRedirect());
+
+        /* Add the display field to the right of the the one serving as the label. */
+        input.add(inputField);
+        /* Add this entire new panel containing the two fields to the panel given
+         in the parameter list. */
+        if (!(panel.getLayout() instanceof BoxLayout)) {
+            panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
+        }
+        panel.add(input);
+    }
+
+    public void addNextField(JPanel panel, String label, ActionListener action) {
+        /*	The layout for the "field" is just left-to-right, with each having two
+         elements. */
+        JPanel input = new JPanel();
+        input.setLayout(new FlowLayout());
+
+        /* The text field to the left is just being used as a label, so is set
+         to be uneditable. */
+        JTextField labelField = new JTextField(LABEL_FIELD_WIDTH);
+        labelField.setHorizontalAlignment(JTextField.RIGHT);
+        labelField.setText(label);
+        /* Do not allow this field to be edited, or to gain the focus.
+         This is effectively making this into a label-like JLabel. */
+        labelField.setEditable(false);
+        labelField.setFocusable(false);
+        /* ... and a border is not needed, either. */
+        labelField.setBorder(BorderFactory.createEmptyBorder());
+        input.add(labelField);
+
+        /* The text field to the right is where the user enters the data. This
+         text field must be editable, and have a
+         */
+        JTextField inputField = new JTextField(INPUT_FIELD_WIDTH);
+        inputField.setHorizontalAlignment(JTextField.LEFT);
+        inputField.setText("");
+        inputField.setEditable(true);
+        inputField.setFocusable(true);
+        inputField.setBorder(BorderFactory.createEmptyBorder());
+        inputField.setBackground(UNFILLED_FIELD);
+        if (action != null) {
+            inputField.addActionListener(
+                    new ActionListenerWrapper(action));
+        }
+
+        /* This code is a nicety: it redirects focus lost events to be action
+         events, causing the invocation of the action listeners. The intent is
+         that if the user moves the cursor to another field, with the mouse or
+         using TAB, the field acts as if ENTER has been typed into the end of
+         the field. This is suppressed if the field is actually empty. */
+        inputField.addFocusListener(new FocusRedirect());
+
+        /* Add the display field to the right of the the one serving as the label. */
+        input.add(inputField);
+
+        /* Add this entire new panel containing the two fields to the panel given
+         in the parameter list. */
+        if (!(panel.getLayout() instanceof BoxLayout)) {
+            panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
+        }
+        panel.add(input);
+    }
+
+//------------------------------ Nested classes --------------------------------
+    /**
+     * Focus Listener to redirect FocusLost events to Action events
+     */
+    private class FocusRedirect implements FocusListener {
+
+        /**
+         * Not used.
+         *
+         * @param e	the focus event
+         */
+        @Override
+        public void focusGained(FocusEvent e) {
+        }
+
+        /**
+         * When focus is lost, an action event is created.
+         *
+         * @param e	the focus event
+         */
+        @Override
+        public void focusLost(FocusEvent e) {
+            JTextField textField = (JTextField) e.getSource();
+            if (!dispatched) {
+                textField.postActionEvent();
+            }
+        }
+    }
+
+    /**
+     * This class is used for wrapping action listeners, so that the dispatch
+     * flag can be set, so as to ensure that two action performed responses are
+     * not displayed at the same time.
+     */
+    private class ActionListenerWrapper implements ActionListener {
+
+        /**
+         * The action listener provided by the user, that will not be dispatched
+         * if there is already a listener responding to a previous event.
+         */
+        ActionListener actionListener;
+
+        /**
+         * Constructor.
+         *
+         * @param actionListener	The actionListener to be wrapped.
+         */
+        public ActionListenerWrapper(ActionListener actionListener) {
+            this.actionListener = actionListener;
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if (!dispatched) {
+                dispatched = true;
+                actionListener.actionPerformed(e);
+                dispatched = false;
+            }
+        }
+    }
+
+    /**
+     * This class is basically a wrapper on the superclass Exception, and has
+     * the same constructors, and inherits the same methods.
+     *
+     * @author	Dr. Bruce K. Haddon, Instructor
+     * @version	1.3, 2014-01-20, CSC-240 Assignment 7, per the Assignment
+     * Instructions
+     */
+    @SuppressWarnings({"serial", "PublicInnerClass"})
+    public static class ValidationException extends Exception {
+
+        /**
+         * Constructs a new exception with the specified detail message. The
+         * cause is not initialized, and may subsequently be initialized by a
+         * call to {@link #initCause}.
+         *
+         * @param message	the detail message. The detail message is saved for
+         * later retrieval by the {@link #getMessage()} method.
+         *
+         * @see	Exception
+         */
+        public ValidationException(String message) {
+            super(message);
+        }
+    }
+}
