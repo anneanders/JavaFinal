@@ -1,0 +1,154 @@
+
+package edu.frontrange.csc241.a9.model;
+
+import edu.frontrange.csc241.a9.database.Database;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.LinkedList;
+import java.util.List;
+
+/**
+ * Model, providing or wrapping the data sources for the application.
+ *
+ * @author	Dr. Bruce K. Haddon, Instructor
+ * @version	1.3, 2013-03-21, CSC-241 Assignment 9, Exercise 28.4
+ */
+public class Model
+{
+/**
+ * The database to be used by the model for holding data about the employees
+ */
+private final Database db;
+
+/**
+ * The model for this application. The data are stored in the given database.
+ *
+ * @param db		the given database
+ */
+public Model(Database db)
+{
+	/* Remember the database. */
+	this.db = db;
+}
+
+/**
+ * Given a table, and the names of the columns of that table, create an SQL
+ * INSERT statement for that table, have the database prepare it, and
+ * return the prepared statement.
+ *
+ * @param table		the table into which to insert the records
+ * @param columns	the names of the columns of that table
+ * @return			a prepared statement for that insertion
+ */
+public PreparedStatement prepareInsertStatement(String table, String... columns)
+{
+	/* Use just the "INSERT INTO " and the table name as a key. */
+	StringBuilder statement =
+			new StringBuilder("INSERT INTO ").append(table).append(" VALUES (");
+
+	for( int i = 0; i != columns.length; ++i )
+	{
+		if( i != 0 ) statement.append(", ");
+		statement.append('?');
+	}
+	/* Return the preparedStatement. */
+	return db.prepareStatement(statement.append(");").toString());
+}
+public PreparedStatement prepareUpdateStatement(String table, String... columns){
+	StringBuilder statement = new StringBuilder("UPDATE ").append(table).append(" SET ");
+
+	for( int i = 1; i != columns.length; ++i )
+	{
+		if( i != 1) statement.append(", ");
+		statement.append(columns[i]+"="+'?');
+	}
+        statement.append(" WHERE socialSecurityNumber=?"); 
+        /* Return the preparedStatement. */
+	return db.prepareStatement(statement.append(";").toString());
+}
+
+
+/**
+ * Given a table, and the names of the columns of that table, create an SQL
+ * INSERT statement for that table, have the database prepare it, and
+ * return the prepared statement.
+ *
+ * @param table		the table into which to insert the records
+ * @param columns	the names of the columns of that table
+ * @return			a prepared statement for that insertion
+ */
+public PreparedStatement prepareDeleteStatement(String table, String... columns)
+{
+	/* Use just the "INSERT INTO " and the table name as a key. */
+	StringBuilder statement =
+			new StringBuilder("DELETE FROM ").append(table).append(" WHERE socialSecurityNumber=?");
+
+	/* Return the preparedStatement. */
+        
+	return db.prepareStatement(statement.append(";").toString());
+}
+
+public PreparedStatement prepareSelectAllStatement(String table, String... columns)
+{
+	StringBuilder statement = new StringBuilder("SELECT ");
+	for( int i = 0; i != columns.length; ++i )
+	{
+		if( i != 0 ) statement.append(", ");
+		statement.append(columns[i]);
+	}
+
+	/* Return the preparedStatement. */
+	return db.prepareStatement(
+			statement.append(" FROM ").append(table).append(";").toString());
+}
+
+/**
+ * Get all the tuples (rows) from the given relation (table).
+ *
+ * @param preparedStatement the prepared statement to be used for the
+ *					query to get these records
+ * @param table		the table from which to get the records
+ * @param columns	the names of the fields of that table
+ * @return			an array of arrays containing the values as Strings
+ */
+public String[][] getRecords(PreparedStatement preparedStatement, String table, String... columns)
+{
+	List<String[]> values = new LinkedList<>();
+	try{
+		ResultSet resultSet = preparedStatement.executeQuery();
+		while( resultSet.next() )
+			{
+				/* Map into which to accumulate the row that was obtained. */
+				List<String> row = new LinkedList<>();
+				for( String column: columns )
+					row.add(resultSet.getObject(column).toString());
+				values.add(row.toArray(new String[row.size()]));
+			}
+	} catch(SQLException sqle){}
+	return values.toArray(new String[values.size()][]);
+}
+public String[][] getPayRecords(PreparedStatement preparedStatement, String table, String... columns)
+{
+	List<String[]> values = new LinkedList<>();
+	try{
+		ResultSet resultSet = preparedStatement.executeQuery();
+		while( resultSet.next() )
+			{
+				/* Map into which to accumulate the row that was obtained. */
+				List<String> row = new LinkedList<>();
+				for( String column: columns )
+					row.add(resultSet.getObject(column).toString());
+				values.add(row.toArray(new String[row.size()]));
+			}
+	} catch(SQLException sqle){}
+	return values.toArray(new String[values.size()][]);
+}
+/**
+ * Finished with the model.
+ */
+public void close()
+{
+	db.close();
+}
+}
