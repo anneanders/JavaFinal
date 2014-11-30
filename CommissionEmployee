@@ -1,0 +1,510 @@
+
+package edu.frontrange.csc241.a9.model;
+
+import edu.frontrange.csc241.a9.controller.Controller;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.Date;
+import javax.swing.BoxLayout;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+
+/**
+ * A CommissionEmployee is a Employee who is paid by commission.
+ * <p>
+ * This definition follows Fig. 10.13: CommissionEmployee.java in the text book,
+ * but has been augmented to contain all the fields implicit in the employee.sql
+ * database script, to use the inheritance structure, and to match the names
+ * found there.
+ *
+ * @author	Deitel &amp; Associates, Inc. (see copyright notice at end)
+ * @author	Dr. Bruce K. Haddon, Instructor
+ * @version	1.3, 2013-03-21, CSC-241 Assignment 9, Exercise 28.4
+ */
+public class CommissionEmployee extends Employee
+{
+/**
+ * Gross weekly sales.
+ */
+private int grossSales;
+
+/**
+ * Commission percentage.
+ */
+private double commissionRate;
+
+/**
+ * Bonus amount.
+ */
+private double bonus;
+
+/**
+ * Constructor.
+ *
+ * @param firstName		employee's first name (assuming Western World naming).
+ * @param lastName		employee's last name (assuming Western World naming).
+ * @param socialSecurityNumber employee's social security number (assuming USA
+ *						environment)
+ * @param birthday		birth date
+ * @param departmentName name of department for this employee
+ * @param grossSales	gross weekly sales.
+ * @param commissionRate commission rate, a percentage expressed as a fraction
+ *						between 0 and 1.
+ * @param bonus			the employee's bonus
+ */
+public CommissionEmployee(String firstName, String lastName,
+		String socialSecurityNumber, Date birthday, String departmentName,
+		int grossSales,
+		double commissionRate, double bonus)
+{
+	super(firstName, lastName, socialSecurityNumber, birthday, departmentName);
+	setGrossSales(grossSales);
+	setCommissionRate(commissionRate);
+	setBonus(bonus);
+}
+
+/**
+ * Zero-parameter Constructor.
+ */
+public CommissionEmployee()
+{
+	resetGrossSales();
+	resetCommissionRate();
+	resetBonus();
+}
+
+
+/**
+ * Reset the employee's commission rate.
+ */
+public final void resetCommissionRate()
+{
+	/* This method is marked final, as it is called from a constructor. */
+	this.commissionRate = -1.0;
+}
+
+/**
+ * Setter for commission rate.
+ *
+ * @param commissionRate	commission rate, as fraction between 0 and 1.
+ * @return					normalized value
+ */
+@SuppressWarnings("NestedAssignment")
+public final double setCommissionRate(double commissionRate)
+{
+	/* This method is marked final, as it is called from a constructor. */
+	return this.commissionRate = commissionRate < 0.0 ? 0.0 :
+									commissionRate > 1.0 ? 1.0 :
+										commissionRate;
+}
+
+/**
+ * Getter for commission rate.
+ *
+ * @return			commission rate, as fraction between 0 and 1.
+ */
+public double getCommissionRate() { return commissionRate; }
+
+
+/**
+ * Reset the employee's gross weekly sales.
+ */
+public final void resetGrossSales()
+{
+	/* This method is marked final, as it is called from a constructor. */
+	this.grossSales = -1;
+}
+
+/**
+ * Setter for gross weekly sales.
+ *
+ * @param grossSales	total weekly sales, in whole dollars
+ * @return				normalized value
+ */
+public final int setGrossSales(int grossSales)
+{
+	/* This method is marked final, as it is called from a constructor. */
+	return this.grossSales = grossSales < 0 ? 0 : grossSales;
+}
+
+/**
+ * Getter for gross weekly sales.
+ *
+ * @return			total weekly sales, in whole dollars
+ */
+public int getGrossSales() { return grossSales; }
+
+/**
+ * Reset the employee's bonus.
+ */
+public final void resetBonus()
+{
+	/* This method is marked final, as it is called from a constructor. */
+	this.bonus = -1;
+}
+
+/**
+ * Setter for the employee's bonus.
+ *
+ * @param bonus		the bonus to set
+ * @return			the normalized value
+ */
+public final double setBonus(double bonus)
+{
+	/* This method is marked final, as it is called from a constructor. */
+   return this.bonus = bonus < 0.0 ? 0.0 : bonus;
+}
+
+/**
+ * Getter for the bonus.
+ *
+ * @return			the bonus
+ */
+public double getBonus()
+{
+   return bonus;
+}
+
+/**
+ * The payment amount for a commission employee is the commission rate applied
+ * to the gross weekly sales. plus any bonus.
+ *
+ * @return			payment for the commission employee.
+ */
+@Override
+public double getPaymentAmount()
+{
+	return getCommissionRate() * getGrossSales() + getBonus();
+}
+
+/**
+ * toString returns all the basic information about an instance of the class.
+ *
+ * @return		the String
+ */
+@Override
+public String toString()
+{
+	return String.format("%s: %s%n%s, %,d; %s, %,.2f; %s: %,.2f;",
+			"commission employee", super.toString(),
+			"gross sales", getGrossSales(),
+			"commission rate", getCommissionRate(),
+			"bonus", getBonus());
+}
+
+//-------------------- Methods added for Database support ----------------------
+
+/**
+ * Name of the table for CommissionEmployees
+ */
+private static final String table = "CommissionEmployees";
+
+/**
+ * Columns in the table for BasePlusCommissionEmployees
+ */
+private final String[] columns =
+{
+	"socialSecurityNumber",
+	"grossSales",
+	"commissionRate",
+	"bonus"
+};
+
+
+/**
+ * The prepared form of the INSERT statement
+ */
+private PreparedStatement preparedInsertStatement;
+
+/**
+ * The prepared form of the UPDATE statement
+ */
+private PreparedStatement preparedUpdateStatement;
+
+/**
+ * The prepared form of the DELETE statement
+ */
+private PreparedStatement preparedDeleteStatement;
+private PreparedStatement preparedDeletePayStatement;
+/**
+ * The prepared form of the SELECT statement
+ */
+
+private PreparedStatement preparedSelectAllStatement;
+
+
+/**
+ * Take the defined elements, and prepare it as a PreparedInsertStatement for
+ * inserting an entry in the database. This is in its own method so that it
+ * may override the method in Employee.
+ */
+@Override
+protected void prepareInsertStatement()
+{
+	super.prepareInsertStatement();
+	preparedInsertStatement =	model.prepareInsertStatement(table, columns);
+        
+}
+@Override
+protected void prepareDeleteStatement(){
+	
+        super.prepareDeleteStatement();
+	preparedDeleteStatement =       model.prepareDeleteStatement(table, columns);                
+        
+}
+
+protected void prepareDeletePayStatement(String table)
+{       
+        preparedDeleteStatement =	model.prepareDeleteStatement(table, columns);
+}
+
+@Override
+protected void prepareUpdateStatement()
+{
+	super.prepareUpdateStatement();        
+        preparedUpdateStatement = model.prepareUpdateStatement(table, columns);
+}
+
+
+
+/**
+ * Verify record for this class before adding to the database.
+ *
+ * @return			empty message if the all the field verify correctly
+ */
+@Override
+protected String verifyRecord()
+{
+	String message = super.verifyRecord() + System.getProperty("line.separator");
+
+	if( getGrossSales() < 0 )
+		message = String.format("%s%s%n", message, "Gross Sales missing");
+	if( getCommissionRate() < 0.0 )
+		message = String.format("%s%s%n", message, "Commission Rate is missing");
+	if(	getBonus() < 0.0 )
+		message = String.format("%s%s%n", message, "Bonus is missing");
+
+	return message.trim();
+}
+
+/**
+ * Method for adding a record for this class to the database.
+ *
+ * @return			true if the adding of the record was successful
+ * @throws SQLException if the database has a problem with the record
+ * @throws IllegalStateException if all the information for writing to the
+ *					database is not present
+ */
+@Override
+public boolean setRecord() throws SQLException, IllegalStateException
+{
+	String message = verifyRecord();
+
+	if( message.isEmpty() && super.setRecord() )
+	{            
+            preparedInsertStatement.setString(1, getSocialSecurityNumber());
+            preparedInsertStatement.setInt(2, getGrossSales());
+            preparedInsertStatement.setDouble(3, getCommissionRate());
+            preparedInsertStatement.setDouble(4, getBonus());
+            return !preparedInsertStatement.execute();
+	}
+
+	throw new IllegalStateException(message.trim());
+}
+
+@Override
+public boolean updateRecord() throws SQLException, IllegalStateException
+{
+	String message = verifyRecord();
+	if( message.isEmpty() && super.updateRecord() )
+	{            
+            preparedUpdateStatement.setInt(1, getGrossSales());
+            preparedUpdateStatement.setDouble(2, getCommissionRate());
+            preparedUpdateStatement.setDouble(3, getBonus());
+            preparedUpdateStatement.setString(4, getSocialSecurityNumber());     
+            return !preparedUpdateStatement.execute();
+	}
+
+	throw new IllegalStateException(message.trim());
+}
+@Override
+public boolean deleteRecord() throws SQLException
+{
+            prepareDeleteStatement();
+            preparedDeleteStatement.setString(1, getSocialSecurityNumber()); 
+            if(!preparedDeleteStatement.execute()) {
+                super.deleteRecord();
+            }           
+            return !preparedDeleteStatement.execute();             
+}
+public boolean deletePayRecord() throws SQLException
+{
+    
+            prepareDeletePayStatement(super.getEmployeeType());
+            
+            preparedDeleteStatement.setString(1, getSocialSecurityNumber()); 
+                      
+            return !preparedDeleteStatement.execute();             
+}
+
+/**
+ * Creates a JPanel (that can be shown on the GUI) for collecting the needed
+ * information for this class.
+ *
+ * @return		a JPanel with the needed fields
+ */
+
+    /**
+     * Creates a JPanel (that can be shown on the GUI) for collecting the needed
+       information for this class.
+     * @param data
+     * @return a JPanel with the needed fields
+     */
+@Override
+    public JPanel showInputView(String[] data) {
+    final JPanel panel1 = super.showInputView(data);
+    final JPanel panel2 = new JPanel();
+    controller.populateNextPayField(panel2, "Gross Sales", new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{				
+				try
+				{
+					setGrossSales(controller.integerField(e));
+				}
+				catch( Controller.ValidationException v )
+				{
+					JOptionPane.showMessageDialog(panel2, v.getMessage(), "",
+										JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
+
+	controller.populateNextPayField(panel2, "Commission Rate", new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{				
+				try
+				{
+					setCommissionRate(controller.currencyField(e));
+				}
+				catch( Controller.ValidationException v )
+				{
+					JOptionPane.showMessageDialog(panel2, v.getMessage(), "",
+										JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
+
+	controller.populateNextPayField(panel2, "Bonus",  new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{				
+				try
+				{
+					setBonus(controller.currencyField(e));
+				}
+				catch( Controller.ValidationException v )
+				{
+					JOptionPane.showMessageDialog(panel2, v.getMessage(), "",
+										JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
+
+	JPanel result = new JPanel();
+	result.setLayout(new BoxLayout(result, BoxLayout.PAGE_AXIS));
+	result.add(panel1);
+	result.add(panel2);
+
+	return result;
+}
+@Override
+@SuppressWarnings("Convert2Lambda")
+public JPanel getInputView()
+{
+	final JPanel panel1 = super.getInputView();
+	final JPanel panel2 = new JPanel();
+	controller.addNextField(panel2, "Gross Sales", new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				resetGrossSales();
+				try
+				{
+					setGrossSales(controller.integerField(e));
+				}
+				catch( Controller.ValidationException v )
+				{
+					JOptionPane.showMessageDialog(panel2, v.getMessage(), "",
+										JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
+
+	controller.addNextField(panel2, "Commission Rate", new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				resetCommissionRate();
+				try
+				{
+					setCommissionRate(controller.currencyField(e));
+				}
+				catch( Controller.ValidationException v )
+				{
+					JOptionPane.showMessageDialog(panel2, v.getMessage(), "",
+										JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
+
+	controller.addNextField(panel2, "Bonus", new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				resetBonus();
+				try
+				{
+					setBonus(controller.currencyField(e));
+				}
+				catch( Controller.ValidationException v )
+				{
+					JOptionPane.showMessageDialog(panel2, v.getMessage(), "",
+										JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
+
+	JPanel result = new JPanel();
+	result.setLayout(new BoxLayout(result, BoxLayout.PAGE_AXIS));
+	result.add(panel1);
+	result.add(panel2);
+
+	return result;
+}
+
+
+}
+/*------------------------------------------------------------------------*
+ * (C) Copyright 1992-2010 by Deitel & Associates, Inc. and               *
+ * Pearson Education, Inc. All Rights Reserved.                           *
+ *                                                                        *
+ * DISCLAIMER: The authors and publisher of this book have used their     *
+ * best efforts in preparing the book. These efforts include the          *
+ * development, research, and testing of the theories and programs        *
+ * to determine their effectiveness. The authors and publisher make       *
+ * no warranty of any kind, expressed or implied, with regard to these    *
+ * programs or to the documentation contained in these books. The authors *
+ * and publisher shall not be liable in any event for incidental or       *
+ * consequential damages in connection with, or arising out of, the       *
+ * furnishing, performance, or use of these programs.                     *
+ *------------------------------------------------------------------------*/
