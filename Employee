@@ -1,0 +1,603 @@
+
+package edu.frontrange.csc241.a9.model;
+
+import edu.frontrange.csc241.a9.controller.Controller;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+
+/**
+ * Employee abstract superclass implements Payable.
+ * <p>
+ * All employees have the attributes of first and last name, an SS number,
+ * a birth date, and a department. Also, each employee has an employee type,
+ * which is indicated by the Java type of the class. </p>
+ * <p>
+ * This definition follows Fig. 10.13: Employee.java in the text book, but has
+ * been augmented to contain all the fields implicit in the employee.sql
+ * database script, and to match the names found there.
+ *
+ * @author	Deitel &amp; Associates, Inc. (see copyright notice at end)
+ * @author	Dr. Bruce K. Haddon, Instructor
+ * @version	1.3, 2013-03-21, CSC-241 Assignment 9, Exercise 28.4
+ */
+public abstract class Employee implements Payable
+{
+private String employeeType; 
+Date date;
+/**
+ * The employee's first name (assuming Western World naming).
+ */
+private String firstName;
+
+/**
+ * The employee's last name (assuming Western World naming).
+ */
+private String lastName;
+
+/**
+ * Employee's social security number (assuming USA environment).
+ */
+private String socialSecurityNumber;
+
+/**
+ * Date of birth.
+ */
+private Date birthday;
+
+/**
+ * Name of the employee's department.
+ */
+private String departmentName;
+
+/**
+ * Constructor.
+ *
+ * @param firstName		employee's first name (assuming Western World naming).
+ * @param lastName		employee's last name (assuming Western World naming).
+ * @param socialSecurityNumber employee's social security number (assuming USA
+ *						environment)
+ * @param birthday		birth date (as a String)
+ * @param departmentName name of department for this employee
+ */
+public Employee(String firstName, String lastName, String socialSecurityNumber,
+		Date birthday, String departmentName)
+{
+	setFirstName(firstName);
+	setLastName(lastName);
+	setSocialSecurityNumber(socialSecurityNumber);
+	setBirthday(birthday);
+	setDepartmentName(departmentName);
+}
+
+/**
+ * Zero-parameter Constructor.
+ */
+public Employee()
+{
+	resetFirstName();
+	resetLastName();
+	resetSocialSecurityNumber();
+	resetBirthday();
+	resetDepartmentName();
+}
+
+/**
+ * Reset the employee's first name.
+ */
+public final void resetFirstName()
+{
+	/* This method is marked final, as it is called from a constructor. */
+	this.firstName = null;
+}
+
+/**
+ * Setter for the employee's first name (assuming Western World naming).
+ *
+ * @param firstName	employee's first name (assuming Western World naming).
+ */
+public final void setFirstName(String firstName)
+{
+	/* This method is marked final, as it is called from a constructor. */
+	this.firstName = firstName == null || firstName.isEmpty() ? null : firstName;
+}
+
+/**
+ * Getter for the employee's first name (assuming Western World naming).
+ *
+ * @return		employee's first name, null if not set or invalid
+ */
+public String getFirstName() { return firstName; }
+
+/**
+ * Reset the employee's last name.
+ */
+public final void resetLastName()
+{
+	/* This method is marked final, as it is called from a constructor. */
+	this.lastName = null;
+}
+
+/**
+ * Setter for the employee's last name (assuming Western World naming).
+ *
+ * @param lastName	employee's last name (assuming Western World naming).
+ */
+public final void setLastName(String lastName)
+{
+	/* This method is marked final, as it is called from a constructor. */
+	this.lastName = lastName == null || lastName.isEmpty() ? null : lastName;
+}
+
+/**
+ * Getter for the employee's last name (assuming Western World naming).
+ *
+ * @return		employee's last name, null if not set or invalid
+ */
+public String getLastName() { return lastName; }
+
+/**
+ * Reset the employee's social security number.
+ */
+public final void resetSocialSecurityNumber()
+{
+	/* This method is marked final, as it is called from a constructor. */
+	this.socialSecurityNumber = null;
+}
+
+/**
+ * Setter for social security number.
+ *
+ * @param socialSecurityNumber employee's social security number (assuming USA
+ *				environment)
+ */
+public final void setSocialSecurityNumber(String socialSecurityNumber)
+{
+	/* This method is marked final, as it is called from a constructor. */
+	this.socialSecurityNumber =
+			socialSecurityNumber == null || socialSecurityNumber.isEmpty() ?
+					null : socialSecurityNumber;
+}
+
+/**
+ * Getter for social security number.
+ *
+ * @return		employee's social security number, null if not set or invalid
+ */
+public String getSocialSecurityNumber() { return socialSecurityNumber; }
+
+/**
+ * Reset the employee's birthday.
+ */
+public final void resetBirthday()
+{
+	/* This method is marked final, as it is called from a constructor. */
+	this.birthday = null;
+}
+
+/**
+ * Setter for date of birth.
+ *
+ * @param birthday	the birthday (as a string) to set, in ISO-8601 format
+ */
+public final void setBirthday(Date birthday)
+{
+	/* This method is marked final, as it is called from a constructor. */
+	this.birthday = (Date) birthday.clone();
+}
+
+/**
+ * Getter for date of birth.
+ *
+ * @return		the birthday, null if not set or invalid
+ */
+public Date getBirthday()
+{
+	return birthday == null ? null : (Date) birthday.clone();
+}
+
+/**
+ * Reset the employee's department name.
+ */
+public final void resetDepartmentName()
+{
+	/* This method is marked final, as it is called from a constructor. */
+	this.departmentName = null;
+}
+
+/**
+ * Setter for the department name.
+ *
+ * @param departmentName the departmentName to set
+ */
+public final void setDepartmentName(String departmentName)
+{
+	/* This method is marked final, as it is called from a constructor. */
+	this.departmentName =
+			departmentName == null || departmentName.isEmpty() ?
+					null : departmentName;
+}
+
+/**
+ * @return the departmentName, null if not set or invalid
+ */
+public String getDepartmentName() { return departmentName; }
+
+/**
+ * toString returns all the basic information about an instance of the class.
+ *
+ * @return		the String
+ */
+@Override
+public String toString()
+{
+	return String.format("%s %s%nsocial security number: %s, " +
+				"birthday: %s%nemployeetype: %s, department: %s",
+			getFirstName(), getLastName(), getSocialSecurityNumber(),
+			getBirthday(),
+			this.getClass().getSimpleName(),
+			getDepartmentName());
+}
+public void setEmployeeType(String eType) {
+    employeeType = eType;
+}
+public String getEmployeeType() {
+    return employeeType;
+}
+//-------------------- Members added for Database support ----------------------
+
+/**
+ * Name of the table for Employees
+ */
+private static final String table = "employees";
+
+/**
+ * Columns in the table for Employees
+ */
+private static String[] columns =
+{
+	"socialSecurityNumber",
+	"firstName",
+	"lastName",
+	"birthday",
+	"employeeType",
+	"departmentName"
+};
+
+/**
+ * The prepared form of the INSERT statement
+ */
+private PreparedStatement preparedInsertStatement;
+
+/**
+ * The prepared form of the UPDATE statement
+ */
+private PreparedStatement preparedUpdateStatement;
+
+/**
+ * The prepared form of the DELETE statement
+ */
+private PreparedStatement preparedDeleteStatement;
+
+/**
+ * The prepared form of the SELECT (all) statement
+ */
+private PreparedStatement preparedSelectAllStatement;
+
+/**
+ * Controller for the view using this data object.
+ */
+@SuppressWarnings("ProtectedField")
+protected Controller controller;
+
+/**
+ * View corresponding to that controller.
+ */
+@SuppressWarnings("ProtectedField")
+protected Model model;
+
+/**
+ * Set the controller for the GUI part of this class.
+ *
+ * @param controller	the GUI controller
+ */
+public void setController(Controller controller)
+{
+	this.controller = controller;
+
+	this.model = controller.getModel();
+
+	prepareInsertStatement();
+        prepareUpdateStatement();
+        
+
+	preparedSelectAllStatement = model.prepareSelectAllStatement(table, columns);
+}
+
+/**
+ * Take the defined elements, and prepare it as a PreparedInsertStatement for
+ * inserting an entry in the database. This is in its own method so that it
+ * may be overridden.
+ */
+protected void prepareInsertStatement()
+{
+	preparedInsertStatement =	model.prepareInsertStatement(table, columns);
+}
+protected void prepareUpdateStatement()
+{
+	preparedUpdateStatement =	model.prepareUpdateStatement(table, columns);
+}
+protected void prepareDeleteStatement()
+{       
+        preparedDeleteStatement =	model.prepareDeleteStatement(table, columns);
+}
+
+/**
+ * Verify record for this class before adding to the database.
+ *
+ * @return			empty message if the all the field verify correctly
+ */
+protected String verifyRecord()
+{
+	String message = "";
+
+	if( getSocialSecurityNumber() == null )
+		message = String.format("%s%s%n", message,
+				"Social Security Number is missing");
+	if( getFirstName() == null )
+		message = String.format("%s%s%n", message, "First Name is missing");
+	if( getLastName() == null )
+		message = String.format("%s%s%n", message, "Last Name is missing");
+	if( getBirthday() == null )
+		message = String.format("%s%s%n", message, "Birth Date is missing");
+	if( getDepartmentName() == null )
+		message = String.format("%s%s%n", message, "Department is missing");
+
+	return message.trim();
+}
+
+/**
+ * Method for adding a record for this class to the database.
+ *
+ * @return			true if the adding of the record was successful
+ * @throws SQLException if the database has a problem with the record
+ * @throws IllegalStateException if all the information for writing to the
+ *					database is not present
+ */
+public boolean setRecord() throws SQLException, IllegalStateException
+{
+	String message = verifyRecord();
+
+	if( message.isEmpty() )
+	{
+		preparedInsertStatement.setString(1, getSocialSecurityNumber());
+		preparedInsertStatement.setString(2, getFirstName());
+		preparedInsertStatement.setString(3, getLastName());
+		preparedInsertStatement.setDate(4, new java.sql.Date(getBirthday().getTime()));
+		preparedInsertStatement.setString(5, this.getClass().getSimpleName());
+		preparedInsertStatement.setString(6, getDepartmentName());
+		return !preparedInsertStatement.execute();
+	}
+
+	throw new IllegalStateException(message);
+}
+public boolean updateRecord() throws SQLException, IllegalStateException
+{
+	String message = verifyRecord();
+
+	if( message.isEmpty() )
+	{
+		preparedUpdateStatement.setString(1, getFirstName());
+		preparedUpdateStatement.setString(2, getLastName());
+		preparedUpdateStatement.setDate(3, new java.sql.Date(getBirthday().getTime()));
+		preparedUpdateStatement.setString(4, this.getClass().getSimpleName());
+		preparedUpdateStatement.setString(5, getDepartmentName());
+                preparedUpdateStatement.setString(6, getSocialSecurityNumber());
+		return !preparedUpdateStatement.execute();
+	}
+
+	throw new IllegalStateException(message);
+}
+
+public boolean deleteRecord() throws SQLException, IllegalStateException
+{
+	prepareDeleteStatement();
+        preparedDeleteStatement.setString(1, getSocialSecurityNumber());
+        return !preparedDeleteStatement.execute();
+       
+}
+
+
+/**
+ *	Get the columns for the Employee class
+ *
+ * @return		array of the column names
+ */
+public String[] getColumns()
+{
+	return columns.clone();
+}
+
+/**
+ * Method for records for this class to the database.
+ *
+ * @return			An array of rows (array of Strings) from the table for this
+ *					type
+ */
+public String[][] getRecords()
+{
+	return model.getRecords(preparedSelectAllStatement, table, columns);
+}
+
+/**
+ * Creates a JPanel (that can be shown on the GUI) for collecting the needed
+ * information for this class.
+ *
+ * @return		a JPanel with the needed fields
+ */
+@SuppressWarnings("Convert2Lambda")
+public JPanel getInputView()
+{
+	final JPanel panel = new JPanel();
+	controller.addNextField(panel, "Social Security Number", new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				resetSocialSecurityNumber();
+				try
+				{
+					setSocialSecurityNumber(controller.SSNField(e));
+				}
+				catch( Controller.ValidationException v )
+				{
+					JOptionPane.showMessageDialog(panel, v.getMessage(), "",
+										JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
+
+	controller.addNextField(panel, "First Name", new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				resetFirstName();
+				setFirstName(controller.nameField(e));
+			}
+		});
+	controller.addNextField(panel, "Last Name", new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				resetLastName();
+				setLastName(controller.nameField(e));
+			}
+		});
+
+	controller.addNextField(panel, "Birth Date", new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				resetBirthday();
+				try
+				{
+					setBirthday(controller.dateField(e));
+				}
+				catch( Controller.ValidationException v )
+				{
+					JOptionPane.showMessageDialog(panel, v.getMessage(), "",
+										JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
+
+	controller.addNextField(panel, "Department Name", new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				resetDepartmentName();
+				setDepartmentName(controller.nameField(e));
+			}
+		});
+	return panel;
+}
+public JPanel showInputView(final String[] data)
+{       SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+	String bDate = data[3];  
+        //System.out.println("data[4]" + data[4]);
+        setEmployeeType(data[4]);
+	try { 
+            date = formatter.parse(bDate); 
+	} catch (ParseException e) {
+            e.printStackTrace();
+	}
+	final JPanel panel = new JPanel();
+	controller.populateNextField(panel, "Social Security Number", data[0], new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				try {
+                                
+				setSocialSecurityNumber(controller.SSNField(e));
+                                }
+                                catch( Controller.ValidationException v )
+				{
+					JOptionPane.showMessageDialog(panel, v.getMessage(), "",
+										JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
+        
+	controller.populateNextField(panel, "First Name", data[1], new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{                            
+                                setFirstName(controller.nameField(e));                        	
+			}
+		});
+        
+	controller.populateNextField(panel, "Last Name", data[2], new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{				
+				setLastName(controller.nameField(e));
+			}
+		});;
+        
+	controller.populateNextField(panel, "Birth Date", data[3], new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+                            try {
+                                
+				setBirthday(controller.dateField(e));
+                                
+                            }catch( Controller.ValidationException v )
+				{
+					JOptionPane.showMessageDialog(panel, v.getMessage(), "",
+										JOptionPane.ERROR_MESSAGE);
+				}
+                            
+			}
+		});
+	controller.populateNextField(panel, "Department Name", data[5], new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				
+				setDepartmentName(controller.nameField(e));
+			}
+		});
+        
+	return panel;
+}
+}
+/*------------------------------------------------------------------------*
+ * (C) Copyright 1992-2010 by Deitel & Associates, Inc. and               *
+ * Pearson Education, Inc. All Rights Reserved.                           *
+ *                                                                        *
+ * DISCLAIMER: The authors and publisher of this book have used their     *
+ * best efforts in preparing the book. These efforts include the          *
+ * development, research, and testing of the theories and programs        *
+ * to determine their effectiveness. The authors and publisher make       *
+ * no warranty of any kind, expressed or implied, with regard to these    *
+ * programs or to the documentation contained in these books. The authors *
+ * and publisher shall not be liable in any event for incidental or       *
+ * consequential damages in connection with, or arising out of, the       *
+ * furnishing, performance, or use of these programs.                     *
+ *------------------------------------------------------------------------*/
