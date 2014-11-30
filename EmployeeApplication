@@ -1,0 +1,71 @@
+
+package edu.frontrange.csc241.a9;
+
+import edu.frontrange.csc241.a9.controller.Controller;
+import edu.frontrange.csc241.a9.database.Database;
+import edu.frontrange.csc241.a9.model.Model;
+import edu.frontrange.csc241.a9.view.View;
+
+/**
+ * This is the main application for adding employees to the
+ * &ldquo;employees&rdquo; database. It opens a window into which the relevant
+ * data may be entered for each type of employee.
+ * <p>
+ * The approach has been to convert each of the &ldquo;Employee&rdquo; class
+ * definitions into a &ldquo;Data Access Object&rdquo;, that accesses and
+ * updates its corresponding data in the database. As such, these classes are
+ * treated as being components of the data model. The <b>Database</b> is a </p>
+ * separate class, but is essentially a component of the implementation of the
+ * Model.
+ * <p>
+ * Each class contains information describing the corresponding database
+ * table. This same information is also used to construct the view needed to
+ * add a new employee, or to show the summary information about this employee.
+ *
+ * @author	Dr. Bruce K. Haddon, Instructor
+ * @version	1.3, 2013-03-21, CSC-241 Assignment 9, Exercise 28.4
+ *
+ */
+@SuppressWarnings("serial")
+public class EmployeeApplication
+{
+/**
+ * The main entry point.
+ * <p>
+ * Execute:<pre>
+ *	 java edu.frontrange.csc241.a7.EmployeeApplication
+ * </pre>
+ *
+ * @param args		Not used
+ */
+public static void main(String[] args)
+{
+	new EmployeeApplication().initialize();
+}
+
+/**
+ * Constructor. Private to prevent external use.
+ */
+private EmployeeApplication() {}
+
+/**
+ * Initialize the GUI
+ */
+public void initialize()
+{
+	/* Set up the MySql database. */
+	Database db = new Database("employees", "localhost", "root", "password");
+
+	/* Create the model that does all the computation for the application. */
+        Model model = new Model(db);
+
+	/* Instantiate the controller: tell the controller the model to be used. */
+	Controller controller = new Controller(model);
+
+	/* Create the UI containing the view. */
+	View view = new View(controller);
+
+	/* Start up the view, and start it, so it shows the GUI. */
+	view.initialize();
+}
+}
