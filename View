@@ -1,0 +1,350 @@
+
+package edu.frontrange.csc241.a9.view;
+
+import edu.frontrange.csc241.a9.controller.Controller;
+import edu.frontrange.csc241.a9.model.CommissionEmployee;
+import edu.frontrange.csc241.a9.model.Employee;
+import edu.frontrange.csc241.a9.model.Model;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Point;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.HierarchyEvent;
+import java.awt.event.HierarchyListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import javax.swing.JFrame;
+import javax.swing.JButton;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
+import javax.swing.SwingUtilities;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableModel;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
+/**
+ * This is the main application for adding employees to the
+ * &ldquo;employees&rdquo; database. It opens a window into which the relevant
+ * data may be entered for each type of employee.
+ * <p>
+ * The approach has been to convert each of the &ldquo;Employee&rdquo; class
+ * definitions into a &ldquo;Data Access Object&rdquo;, that accesses and
+ * updates its corresponding field data in the database. </p>
+ * <p>
+ * Corresponding to each &ldquo;Employee&rdquo; class there is a corresponding
+ * &ldquo;View&rdquo; class, that is a description of the form that needs to
+ * be displayed in order to gather the information for that employee type.</p>
+ * <p>
+ * The database is handled through two classes, <b>DBService</b>, that
+ * provide the data for opening a JDBC connection to an appropriate database
+ * service, and <b>Database</b>, that provides the operations on the tables
+ * that are provided by that service.
+ *
+ * @author	Dr. Bruce K. Haddon, Instructor
+ * @version	1.3, 2013-03-21, CSC-241 Assignment 9, Exercise 28.4
+ */
+@SuppressWarnings("serial")
+public class View extends JFrame implements Runnable
+{
+private JButton addButton;
+/**
+ * Default field background color for unfilled field.
+ */
+public static final Color UNFILLED_FIELD = new Color(230, 230, 230);
+
+/**
+ * Default field background color for unfilled field.
+ */
+public static final Color FILLED_FIELD = Color.WHITE;
+
+/**
+ * Marginal space to be left in JTable.
+ */
+private static final int MARGIN = 20;
+
+/**
+ * The model for the application.
+ */
+private Model model;
+
+/**
+ * The controller for this view.
+ */
+private final Controller controller;
+
+JTabbedPane jTabbedPane;
+UpdatePanel updatePanel;
+
+/**
+ * Constructor.
+ *
+ * @param controller		the controller for this view
+ */
+public View(Controller controller)
+{
+	this.controller = controller;
+}
+
+/**
+ * Initialize and show the GUI.
+ */
+public void initialize()
+{
+	controller.setView(this);
+	model = controller.getModel();
+
+	/* Create a tabbed pane, and add it to the window. */
+	setPreferredSize(new Dimension(750, 500));
+        jTabbedPane = new JTabbedPane();
+        addButton = new JButton("Add");
+        
+        add(jTabbedPane);
+        
+
+	/* Add a Panel containing the needed GUI to this JFrame, giving it
+	   a reference to this main window, and an instantiation of the
+	   wrapper class for the database. */
+	final EmployeePanel showPanel = new EmployeePanel(this, model, controller);
+
+	jTabbedPane.addTab("Employee List", null, showPanel , "Show employees");
+        
+	showPanel.addHierarchyListener(new ShowTabListener(showPanel));
+        
+        final EmployeePanel addPanel = new EmployeePanel(this, model, controller);
+        updatePanel = new UpdatePanel(this, model, controller);
+        
+        addButton.addActionListener(new ActionListener()
+        {
+          public void actionPerformed(ActionEvent e)
+          {
+              jTabbedPane.addTab("Employee Detail", null, addPanel , "Add new employee");        
+                
+              addPanel.initialize();
+          }
+        });	
+        
+	/* On the Swing dispatch thread, arrange for the window to be displayed,
+	   and which will run the application. */
+	SwingUtilities.invokeLater(this);
+}
+
+/**
+ * Set the close option, realize the frame with pack, and make the
+ * application visible.
+ */
+@Override
+public void run()
+{
+	/* This listener will be executed before the actual EXIT_ON_CLOSE is
+	   performed. */
+	addWindowListener(new WindowAdapter()
+		{
+			@Override
+			public void windowClosed(WindowEvent e)
+			{
+				model.close();
+			}
+		});
+	setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+	pack();
+	setVisible(true);
+}
+
+/**
+ * Listener that is called when the Show tab is selected. The Show tab is
+ * filled with a table showing all the entries in the Employee table, arranged
+ * in columns.
+ */
+private class ShowTabListener implements HierarchyListener
+{
+/**
+ * The panel to hold the JTable.
+ */
+private final EmployeePanel showPanel;
+
+/**
+ * Constructor.
+ *
+ * @param showPanel		panel to hold the JTable
+ */
+public ShowTabListener(EmployeePanel showPanel)
+{
+	this.showPanel = showPanel;
+}
+
+@Override
+public void hierarchyChanged(HierarchyEvent e)
+{
+	/* This event processor is called when the corresponding tab (the show
+	 tab) is selected. If the selection of the tab represents a change in
+	 the showing status, and results in the tab being shown, then the
+	 remainder of the code is executed. */
+	if( e.getChangeFlags() == HierarchyEvent.SHOWING_CHANGED &&
+			showPanel.isShowing() )
+	{
+		/* Establish an employee so as to be able to access the getRecords
+		 method (Employee itself is abstract). */
+		Employee employee = new CommissionEmployee();
+		employee.setController(controller);
+		/* Get all the records from the Employee table. */
+		String[][] results = employee.getRecords();
+
+		/* Create a JTable, using the results, and the column headings. */
+		JTable table = new JTable(results, employee.getColumns());
+		table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+                
+                /* Add mouse listener to table. Will open new tab to update/delete employee when employee is double-clicked. */
+                table.addMouseListener(new
+                        MouseAdapter() {
+                            @Override
+                            public void mousePressed(MouseEvent e) {
+                                
+                                JTable newTable = (JTable) e.getSource();
+                                Point p = e.getPoint();
+                                int row = newTable.rowAtPoint(p);
+                                int colCount = newTable.getColumnCount();
+                                String empType = (String) newTable.getValueAt(row, 4);
+                                String[] empData = new String[colCount];
+                                for (int i = 0; i != colCount; i++){
+                                    empData[i] = (String) newTable.getValueAt(row, i) + " ";
+                                }                                
+                                if (e.getClickCount() == 2) { 
+                                    jTabbedPane.addTab("Update/Delete", null, updatePanel , "Update/Delete employees");                                    
+                                    updatePanel.initialize(empData, empType);  
+                                    
+                               
+                                }
+                            }
+                        });
+		int tableWidth = initColumnSizes(table);
+		int tableHeight = showPanel.getHeight();
+		table.setPreferredScrollableViewportSize(new Dimension(tableWidth,
+				tableHeight));
+
+		showPanel.setPreferredSize(new Dimension(tableWidth + MARGIN,
+				tableHeight + MARGIN));
+		showPanel.getParent().setPreferredSize(new Dimension(tableWidth +
+				MARGIN, tableHeight + MARGIN));
+                
+
+		JScrollPane scrollPane = new JScrollPane(table);
+                
+		showPanel.removeAll();
+		showPanel.add(scrollPane);
+                showPanel.add(addButton);
+                
+		View.this.revalidate();
+	}   
+}
+
+/**
+ * This method picks good column sizes. It accesses the model for the given
+ * JTable, and uses the renderer for the header row, and then the renderer
+ * of each of the cells in each column under each heading, to compute the actual
+ * needed width for each column. It sets the maximum of these to be the
+ * preferred width for each column, and returns the sum of those to be the
+ * width of the table.
+ *
+ * @param table		the table on which to set the column sizes
+ * @return			the total width of the table
+ */
+private int initColumnSizes(JTable table)
+{
+	int tablewidth = 0;				// initialize the tablewidth for later adds
+	TableModel tableModel = table.getModel();
+	TableCellRenderer headerRenderer =
+								table.getTableHeader().getDefaultRenderer();
+	for( int column = 0; column != tableModel.getColumnCount(); ++column )
+	{
+		TableColumn tableColumn = table.getColumnModel().getColumn(column);
+
+		/* Initialize the estimate of the column width to the width needed for
+		   the header of the table. */
+		Component comp = headerRenderer.getTableCellRendererComponent(null,
+				tableColumn.getHeaderValue(), false, false, 0, 0);
+		int columnWidth = comp.getPreferredSize().width;
+
+		/* Each column, find the object in the column that renders as the
+		   longest. */
+		for( int row = 0; row != tableModel.getRowCount(); ++row )
+		{
+			/* Get the entry at the given row and column. */
+			String entry = (String) tableModel.getValueAt(row, column);
+
+			/* Get the rendered width of the item in that cell. */
+			comp = table.getDefaultRenderer(tableModel.getColumnClass(column)).
+				getTableCellRendererComponent(table, entry, false, false,
+				0, column);
+			int cellWidth = comp.getPreferredSize().width;
+
+			/* Remember the desired width as the maximum of the header width
+			   and the widths of all the entries. */
+			columnWidth = Math.max(columnWidth, cellWidth);
+		}
+		/* Set the maximum column width as the preferred width of the column.
+		   Accumulate the widths to get the width of the entire table. */
+		tableColumn.setPreferredWidth(columnWidth + MARGIN / 2);
+		tablewidth += tableColumn.getPreferredWidth();
+	}
+	return tablewidth;
+}
+}
+
+/**
+ * This method picks good column sizes. It accesses the model for the given
+ * JTable, and uses the renderer for the header row, and then the renderer
+ * of each of the cells in each column under each heading, to compute the actual
+ * needed width for each column. It sets the maximum of these to be the
+ * preferred width for each column, and returns the sum of those to be the
+ * width of the table.
+ *
+ * @param table		the table on which to set the column sizes
+ * @return			the total width of the table
+ */
+private int initColumnSizes(JTable table)
+{
+	int tablewidth = 0;				// initialize the tablewidth for later adds
+	TableModel tableModel = table.getModel();
+	TableCellRenderer headerRenderer =
+								table.getTableHeader().getDefaultRenderer();
+	for( int column = 0; column != tableModel.getColumnCount(); ++column )
+	{
+		TableColumn tableColumn = table.getColumnModel().getColumn(column);
+
+		/* Initialize the estimate of the column width to the width needed for
+		   the header of the table. */
+		Component comp = headerRenderer.getTableCellRendererComponent(null,
+				tableColumn.getHeaderValue(), false, false, 0, 0);
+		int columnWidth = comp.getPreferredSize().width;
+
+		/* Each column, find the object in the column that renders as the
+		   longest. */
+		for( int row = 0; row != tableModel.getRowCount(); ++row )
+		{
+			/* Get the entry at the given row and column. */
+			String entry = (String) tableModel.getValueAt(row, column);
+
+			/* Get the rendered width of the item in that cell. */
+			comp = table.getDefaultRenderer(tableModel.getColumnClass(column)).
+				getTableCellRendererComponent(table, entry, false, false,
+				0, column);
+			int cellWidth = comp.getPreferredSize().width;
+
+			/* Remember the desired width as the maximum of the header width
+			   and the widths of all the entries. */
+			columnWidth = Math.max(columnWidth, cellWidth);
+		}
+		/* Set the maximum column width as the preferred width of the column.
+		   Accumulate the widths to get the width of the entire table. */
+		tableColumn.setPreferredWidth(columnWidth + MARGIN / 2);
+		tablewidth += tableColumn.getPreferredWidth();
+	}
+	return tablewidth;
+}
+}
+
