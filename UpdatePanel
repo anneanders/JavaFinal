@@ -1,0 +1,448 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package edu.frontrange.csc241.a9.view;
+
+import edu.frontrange.csc241.a9.controller.Controller;
+import edu.frontrange.csc241.a9.model.BasePlusCommissionEmployee;
+import edu.frontrange.csc241.a9.model.CommissionEmployee;
+import edu.frontrange.csc241.a9.model.Employee;
+import edu.frontrange.csc241.a9.model.HourlyEmployee;
+import edu.frontrange.csc241.a9.model.Model;
+import edu.frontrange.csc241.a9.model.SalariedEmployee;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.Panel;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+
+/**
+ *
+ * @author aanders
+ */
+public class UpdatePanel extends JPanel  
+{
+
+/**
+ * The items array has a single entry for each kind of employee that may be
+ * added to the data base. Each is expected to be a subclass of Employee.
+ */
+private String[] items =
+{
+	SalariedEmployee.class.getSimpleName(),
+	CommissionEmployee.class.getSimpleName(),
+	BasePlusCommissionEmployee.class.getSimpleName(),
+	HourlyEmployee.class.getSimpleName()
+};
+private CommissionEmployee commission;
+private BasePlusCommissionEmployee basePlus;
+private SalariedEmployee salary;
+private HourlyEmployee hourly;
+private String employeeType;
+private String newEmpType;
+
+/**
+ * These are these grid bag constraints used for the above panel.
+ */
+private GridBagConstraints gb = new GridBagConstraints();
+
+/**
+ * This is the current object being used for storing the values as they are
+ * entered on the GUI. This is the "model."
+ */
+private transient Employee employeeRecord = null;
+
+/**
+ * Current panel being displayed.
+ */
+private JPanel currentPanel = null;
+
+/**
+ * The current data model in use.
+ */
+private Model model;
+
+/**
+ * The main view of the application (used for anchoring error messages).
+ */
+private View view;
+
+/**
+ * The controller for this element of the View.
+ */
+private Controller controller;
+
+private String empData[];
+private String empType;
+
+/**
+ * Constructor.
+ *
+ * @param view	reference to the main view
+ * @param model	model
+ * @param controller	controller for this element of the View
+ */
+public UpdatePanel(View view, Model model, Controller controller)
+{
+	this.view = view;
+	this.model = model;
+	this.controller = controller;
+}
+
+/**
+ * Initialize the panel on which employee types will be chosen.
+ */
+public void initialize(String eData[], String eType)
+{
+    empData = eData;
+    empType = eType;
+	/* Three elements will be laid out vertically. A drop down list of the
+	   employee types. Under that will be the set of FIELDS for collecting
+	   the values. And finally, at the bottom, two buttons, ADD, which if
+	   all the FIELDS are filled, writes the data to the database, and Cancel,
+	   which simply replaces the FIELDS panel with a new one of the same type. */
+	setLayout(new GridBagLayout());
+
+	gb.gridx = 0;
+	gb.gridy = 0;
+        DropDownList dropDownList = new DropDownList(items);
+	add(dropDownList, gb);
+	dropDownList.initialize();
+
+	/* Initially there is just an empty panel, before the first choice is
+	 made. */
+	currentPanel = new JPanel();
+	currentPanel.setPreferredSize(new Dimension(500, 400));
+	gb.gridx = 0;
+	gb.gridy = 1;
+	add(currentPanel, gb);
+        
+	gb.gridx = 0;
+	gb.gridy = 2;
+	ButtonPanel buttonPanel = new ButtonPanel();
+	add(buttonPanel, gb);
+	buttonPanel.initialize();
+        
+        createNewPanel(empType);
+}
+
+/**
+ * A new JPanel is created for the option selected, any existing panel on the
+ * GUI is removed, and this panel is substituted.
+ *
+ * @param newOption	when a new option is selected on the drop down menu, this is
+ * set as current, and a new matching panel is displayed.
+ */
+private void createNewPanel(String newOption)
+{
+	/* Search through the available items that can be selected, looking
+	   for a match. If not found, do nothing, just return. (This is what
+	   will happen if the entry giving the directions to the user is
+	   selected. */
+	int i = 0;
+	for( ; i != items.length; ++i )
+		if( newOption.equals(items[i]) ) break;
+	if( i == items.length ) return;
+	switch( items[i] )
+	{
+	case "BasePlusCommissionEmployee":
+		employeeRecord = new BasePlusCommissionEmployee();
+		break;
+
+	case "CommissionEmployee":
+		employeeRecord = new CommissionEmployee();
+		break;
+
+	case "HourlyEmployee":
+		employeeRecord = new HourlyEmployee();
+		break;
+
+	case "SalariedEmployee":
+		employeeRecord = new SalariedEmployee();
+		break;
+
+	default:
+		throw new AssertionError("Employee type not recognized");
+	}
+
+	employeeRecord.setController(controller);
+	JPanel newPanel = employeeRecord.showInputView(empData);
+	if( newPanel == null ) return;
+
+	if( currentPanel != null ) remove(currentPanel);
+	currentPanel = newPanel;
+	gb.gridx = 0;
+	gb.gridy = 1;
+	gb.anchor = GridBagConstraints.CENTER;
+	add(currentPanel, gb);
+	revalidate();
+
+	/* This cycle of instructions is to clean up some painting problems with
+	   Swing, where everything was not drawn perfectly. */
+	setVisible(false);
+	repaint();
+	setVisible(true);
+	repaint();
+}
+@SuppressWarnings("serial")
+private class DropDownList extends JPanel implements ActionListener
+{
+/**
+ * This ComboBox is the actual drop down.
+ */
+JComboBox<String> dropdownlist;
+
+/**
+ * This is the list of options offered by the drop down.
+ */
+String[] options;
+
+/**
+ * This represents no options selected. It acts as instructions to the user
+ * about what to do.
+ */
+private static final String noOption = "Select Employee Type";
+
+/**
+ * And this records the current option that was selected.
+ */
+String currentOption;
+
+/**
+ *
+ * @param items	the list of items to show on the drop down
+ */
+public DropDownList(String[] items)
+{
+	this.options = new String[items.length + 1];
+	int i = 0;
+	this.options[i++] = noOption;
+	System.arraycopy(items, 0, options, 1, items.length);
+}
+
+public void initialize()
+{
+	/* This statement uses the "diamond" operator from Java 7, since the
+	   compiler can predict the type of the generic type. */
+	this.dropdownlist = new JComboBox<>(this.options);
+	this.dropdownlist.setSelectedIndex(0);
+	add(this.dropdownlist);
+	dropdownlist.addActionListener(this);
+}
+
+/**
+ * An option was selected on the drop down list.
+ *
+ * @param e	the event, i.e., an option was selected
+ */
+@Override
+public void actionPerformed(ActionEvent e)
+{       
+         
+	String newOption = (String) dropdownlist.getSelectedItem();
+        System.out.println("dropdown: " + newOption);
+        newEmpType = newOption;
+        System.out.println("newType: " + newEmpType);
+        employeeRecord.setEmployeeType(newOption);
+        
+	/* If the noOption was selected, do nothing. */
+	if( newOption.equals(noOption) ) return;
+
+	/* Otherwise, create a new panel for the required employee, and put it up
+	   in place of the current one. */
+	createNewPanel(newOption);
+}
+}
+
+/**
+ * This panel contains two buttons, an OK and a Cancel.
+ */
+@SuppressWarnings("serial")
+private class ButtonPanel extends Panel implements ActionListener
+{
+/**
+ * The Update button.
+ */
+JButton UpdateButton;
+ /**
+ * The Delete button.
+ */       
+JButton DeleteButton;
+
+/**
+ * The Cancel button.
+ */
+JButton CancelButton;
+/**
+ * The Yes/No dialog button.
+ */
+int dialogButton = JOptionPane.YES_NO_OPTION;
+/**
+ *
+ */
+public void initialize()
+{
+	/* This grid layout has some empty boxes, to cause the two buttons to
+	   group together in the center. */
+	setLayout(new GridLayout(1, 6));		// set the layout manager
+
+	add(new JPanel());				// two empty boxes
+	add(new JPanel());
+
+	/* The Update Button. */
+	UpdateButton = new JButton(" Update  ");
+	UpdateButton.addActionListener(this);
+	add(UpdateButton);
+        
+        /* The Delete Button */
+        DeleteButton = new JButton(" Delete  ");
+	DeleteButton.addActionListener(this);
+	add(DeleteButton);        
+
+	add(new JPanel());						// three empty boxes
+	add(new JPanel());
+	validate();
+}
+
+@Override
+public void actionPerformed(ActionEvent e)
+{
+    
+        
+	if( employeeRecord == null ) {
+            return;
+        }
+        
+        else if( e.getSource() == UpdateButton ) {
+            String currentEmpType = employeeRecord.getEmployeeType();
+            System.out.println("currentEmpType: " + currentEmpType);
+            
+            /*
+            switch (currentEmpType) {
+                
+                case "CommissionEmployee": {
+                try {                    
+                    employeeRecord.deletePayRecord();
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(view, ex.getMessage());                            
+                }
+                break;
+            }
+            
+            case "BasePlusCommissionEmployee": {
+                try {
+                    basePlus.deletePayRecord();
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(view, ex.getMessage());
+                           
+                }
+                break;
+            }
+            
+            case "SalariedEmployee": {
+                try {
+                    //salary.deletePayRecord();
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(view, ex.getMessage());
+                            
+                }
+                break;
+            }
+            case "HourlyEmployee": {
+                try {
+                    hourly.deletePayRecord();
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(view, ex.getMessage());
+                           
+                }
+                break;
+            }
+            }
+            switch (newEmpType) {
+                
+                case "CommissionEmployee": {
+                try {
+                    JOptionPane.showMessageDialog(view, "Employee was " +
+				( employeeRecord.setRecord() ? "successfully updated" : "unsuccessfully updated"));
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(view, ex.getMessage());                            
+                }
+                break;
+            }
+            
+            case "BasePlusCommissionEmployee": {
+                try {
+                    JOptionPane.showMessageDialog(view, "Employee was " +
+				( employeeRecord.setRecord() ? "successfully updated" : "unsuccessfully updated"));
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(view, ex.getMessage());
+                           
+                }
+                break;
+            }
+            
+            case "SalariedEmployee": {
+                try {
+                    //salary.deletePayRecord();
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(view, ex.getMessage());
+                            
+                }
+                break;
+            }
+            case "HourlyEmployee": {
+                try {
+                    hourly.deletePayRecord();
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(view, ex.getMessage());
+                           
+                }
+                break;
+            }
+            }*/
+            
+		try
+		{                              
+			JOptionPane.showMessageDialog(view, "Employee was " +
+				( employeeRecord.updateRecord() ? "successfully updated" : "unsuccessfully updated"));
+                       
+		}
+                catch( SQLException | IllegalStateException  ex )
+		{
+			/* If attempting to check the completeness of the data in employee
+			   record, or the write generated an error message, show the
+			   message, and then just go back. */
+			JOptionPane.showMessageDialog(view, ex.getMessage());
+			return;
+		}
+        }
+        
+        else if( e.getSource() == DeleteButton ) {
+           JOptionPane.showConfirmDialog (null, "Are you sure you want to delete this employee?", "WARNING", dialogButton);
+           if(dialogButton == JOptionPane.YES_OPTION) {                
+                try {
+                    JOptionPane.showMessageDialog(view, "Employee was " +
+                        ( employeeRecord.deleteRecord() ? "successfully deleted" : "unsuccessfully deleted"));                
+                } 
+                catch (SQLException ex) {
+                    Logger.getLogger(UpdatePanel.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            else if(dialogButton == JOptionPane.NO_OPTION) {
+                          remove(dialogButton);
+            }           
+        }
+    }
+}
+}
