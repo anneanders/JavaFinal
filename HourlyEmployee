@@ -45,6 +45,12 @@ private int hours = -1;
  */
 private double bonus = -1.0;
 
+
+String[][] payResults;
+private final int row = 0;
+private final int payHours = 1;
+private final int payWage = 2;
+private final int payBonus = 3;
 /**
  * Constructor.
  *
@@ -215,6 +221,20 @@ private final String[] columns =
 private PreparedStatement preparedInsertStatement;
 
 /**
+ * The prepared form of the UPDATE statement
+ */
+private PreparedStatement preparedUpdateStatement;
+
+/**
+ * The prepared form of the DELETE statement
+ */
+private PreparedStatement preparedDeleteStatement;
+
+/**
+ * The prepared form of the SELECT statement
+ */
+private PreparedStatement preparedSelectAllStatement;
+/**
  * Take the defined elements, and prepare it as a PreparedInsertStatement for
  * inserting an entry in the database. This is in its own method so that it
  * may override the method in Employee.
@@ -226,6 +246,26 @@ protected void prepareInsertStatement()
 	preparedInsertStatement =	model.prepareInsertStatement(table, columns);
 }
 
+
+@Override
+protected void prepareDeleteStatement(){
+	
+        super.prepareDeleteStatement();
+	preparedDeleteStatement =       model.prepareDeleteStatement(table, columns);                
+        
+}
+
+protected void prepareDeletePayStatement(String table)
+{       
+        preparedDeleteStatement =	model.prepareDeleteStatement(table, columns);
+}
+
+@Override
+protected void prepareUpdateStatement()
+{
+	super.prepareUpdateStatement();        
+        preparedUpdateStatement = model.prepareUpdateStatement(table, columns);
+}
 /**
  * Verify record for this class before adding to the database.
  *
@@ -270,6 +310,125 @@ public boolean setRecord() throws SQLException, IllegalStateException
 
 	throw new IllegalStateException(message.trim());
 }
+
+
+@Override
+public boolean updateRecord() throws SQLException, IllegalStateException
+{
+	String message = verifyRecord();
+	if( message.isEmpty() && super.updateRecord() )
+	{            
+            preparedUpdateStatement.setInt(1, getHours());
+            preparedUpdateStatement.setDouble(2, getWage());
+            preparedUpdateStatement.setDouble(3, getBonus());
+            preparedUpdateStatement.setString(4, getSocialSecurityNumber());     
+            return !preparedUpdateStatement.execute();
+	}
+
+	throw new IllegalStateException(message.trim());
+}
+public boolean setPayRecord(String ssn) throws SQLException, IllegalStateException
+{
+	String message = verifyRecord();
+	if( message.isEmpty()  )
+	{            
+            preparedInsertStatement.setInt(1, getHours());
+            preparedInsertStatement.setDouble(2, getWage());
+            preparedInsertStatement.setDouble(3, getBonus());
+            preparedInsertStatement.setString(4, ssn);     
+            return !preparedInsertStatement.execute();
+	}
+
+	throw new IllegalStateException(message.trim());
+}
+@Override
+public boolean deleteRecord() throws SQLException
+{
+            prepareDeleteStatement();
+            preparedDeleteStatement.setString(1, getSocialSecurityNumber()); 
+            if(!preparedDeleteStatement.execute()) {
+                super.deleteRecord();
+            }           
+            return !preparedDeleteStatement.execute();             
+}
+
+
+
+public String[][] getRecords()
+{
+        String [][] results = super.getRecords();       
+        
+	return results;
+}
+
+@Override
+    public JPanel showInputView(String[] data) {
+
+    preparedSelectAllStatement = model.prepareSelectAllStatement(table, columns);    
+    payResults = model.getRecords(preparedSelectAllStatement, table, columns);
+    
+    final JPanel panel1 = super.showInputView(data);
+    final JPanel panel2 = new JPanel();
+    controller.populateNextPayField(panel2, "Hours", payResults[row][payHours],  new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{				
+				try
+				{
+					setHours(controller.integerField(e));
+				}
+				catch( Controller.ValidationException v )
+				{
+					JOptionPane.showMessageDialog(panel2, v.getMessage(), "",
+										JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
+
+	controller.populateNextPayField(panel2, "Wage", payResults[row][payWage],  new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{				
+				try
+				{
+					setWage(controller.currencyField(e));
+				}
+				catch( Controller.ValidationException v )
+				{
+					JOptionPane.showMessageDialog(panel2, v.getMessage(), "",
+										JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
+
+	controller.populateNextPayField(panel2, "Bonus", payResults[row][payBonus],   new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{				
+				try
+				{
+					setBonus(controller.currencyField(e));
+				}
+				catch( Controller.ValidationException v )
+				{
+					JOptionPane.showMessageDialog(panel2, v.getMessage(), "",
+										JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
+
+	JPanel result = new JPanel();
+	result.setLayout(new BoxLayout(result, BoxLayout.PAGE_AXIS));
+	result.add(panel1);
+	result.add(panel2);
+
+	return result;
+}
+
+
 
 /**
  * Creates a JPanel (that can be shown on the GUI) for collecting the needed
