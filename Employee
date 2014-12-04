@@ -290,6 +290,7 @@ private PreparedStatement preparedDeleteStatement;
  */
 private PreparedStatement preparedSelectAllStatement;
 
+
 /**
  * Controller for the view using this data object.
  */
@@ -337,6 +338,7 @@ protected void prepareDeleteStatement()
 {       
         preparedDeleteStatement =	model.prepareDeleteStatement(table, columns);
 }
+
 
 /**
  * Verify record for this class before adding to the database.
@@ -514,7 +516,6 @@ public JPanel getInputView()
 public JPanel showInputView(final String[] data)
 {       SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
 	String bDate = data[3];  
-        //System.out.println("data[4]" + data[4]);
         setEmployeeType(data[4]);
 	try { 
             date = formatter.parse(bDate); 
