@@ -19,8 +19,6 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import static edu.frontrange.csc241.a9.view.View.UNFILLED_FIELD;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 /**
  * The controller provides the methods that need to be executed when the user
@@ -513,14 +511,15 @@ public class Controller {
      * A new label and input field is added to the given panel (for which a
      * BoxLayout is provided if the input field does not already have a
      * BoxLayout layout manager). The label is as given, and the input field
-     * will be an editable JTextField, to which the given ActionListener will be
-     * attached.
+     * will be an editable JTextField with exception of SSN textfield,
+     * to which the given ActionListener will be attached.
      * <p>
      * Lost focus events on the the JTextField are redirected to the given
      * ActionListener.
      *
      * @param panel	the JPanel container
      * @param label	the label for the input field
+     * @param data      the employee pay data from appropriate class
      * @param action	the action for the input field.
      */
     public void populateNextField(JPanel panel, String label, String data, ActionListener action) {
@@ -588,7 +587,7 @@ public class Controller {
         panel.add(input);
     }
 
-    public void populateNextPayField(JPanel panel, String label, ActionListener action) {
+    public void populateNextPayField(JPanel panel, String label, String data, ActionListener action) {
         /*	The layout for the "field" is just left-to-right, with each having two
          elements. */
         JPanel input = new JPanel();
@@ -613,7 +612,7 @@ public class Controller {
          */
         JTextField inputField = new JTextField(INPUT_FIELD_WIDTH);
         inputField.setHorizontalAlignment(JTextField.LEFT);
-        inputField.setText("");
+        inputField.setText(data);
         if (label.equals("Social Security Number")) {
             inputField.setEditable(false);
         } else {
