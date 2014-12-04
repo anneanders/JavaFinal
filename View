@@ -2,6 +2,9 @@
 package edu.frontrange.csc241.a9.view;
 
 import edu.frontrange.csc241.a9.controller.Controller;
+import edu.frontrange.csc241.a9.model.BasePlusCommissionEmployee;
+import edu.frontrange.csc241.a9.model.SalariedEmployee;
+import edu.frontrange.csc241.a9.model.HourlyEmployee;
 import edu.frontrange.csc241.a9.model.CommissionEmployee;
 import edu.frontrange.csc241.a9.model.Employee;
 import edu.frontrange.csc241.a9.model.Model;
@@ -26,6 +29,9 @@ import javax.swing.table.TableColumn;
 import javax.swing.table.TableModel;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This is the main application for adding employees to the
@@ -77,8 +83,18 @@ private Model model;
  */
 private final Controller controller;
 
+private CommissionEmployee commission = new CommissionEmployee();
+
+private BasePlusCommissionEmployee basePlus = new BasePlusCommissionEmployee();
+
+private SalariedEmployee salaried = new SalariedEmployee();
+
+private HourlyEmployee hourly = new HourlyEmployee();
+
 JTabbedPane jTabbedPane;
+
 UpdatePanel updatePanel;
+
 
 /**
  * Constructor.
@@ -186,11 +202,14 @@ public void hierarchyChanged(HierarchyEvent e)
 	 remainder of the code is executed. */
 	if( e.getChangeFlags() == HierarchyEvent.SHOWING_CHANGED &&
 			showPanel.isShowing() )
+            
 	{
+            
 		/* Establish an employee so as to be able to access the getRecords
 		 method (Employee itself is abstract). */
 		Employee employee = new CommissionEmployee();
 		employee.setController(controller);
+                
 		/* Get all the records from the Employee table. */
 		String[][] results = employee.getRecords();
 
@@ -209,14 +228,15 @@ public void hierarchyChanged(HierarchyEvent e)
                                 int row = newTable.rowAtPoint(p);
                                 int colCount = newTable.getColumnCount();
                                 String empType = (String) newTable.getValueAt(row, 4);
+                                
                                 String[] empData = new String[colCount];
                                 for (int i = 0; i != colCount; i++){
                                     empData[i] = (String) newTable.getValueAt(row, i) + " ";
                                 }                                
                                 if (e.getClickCount() == 2) { 
-                                    jTabbedPane.addTab("Update/Delete", null, updatePanel , "Update/Delete employees");                                    
+                                    updatePanel.removeAll();
+                                    jTabbedPane.addTab("Update / Delete Employee", null, updatePanel , "Update/Delete employees");                                    
                                     updatePanel.initialize(empData, empType);  
-                                    
                                
                                 }
                             }
