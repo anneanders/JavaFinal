@@ -48,6 +48,13 @@ private double bonus;
  * (value indicates this is not set).
  */
 private double baseSalary;
+
+String[][] payResults;
+private final int row = 0;
+private final int payGross = 1;
+private final int commRate = 2;
+private final int payBase = 3;
+private final int payBonus = 4;
 /**
  * The prepared form of the UPDATE statement
  */
@@ -58,6 +65,10 @@ private PreparedStatement preparedUpdateStatement;
  */
 private PreparedStatement preparedDeleteStatement;
 private PreparedStatement prepareDeletePayStatement;
+/**
+ * The prepared form of the SELECT statement
+ */
+private PreparedStatement preparedSelectAllStatement;
 /**
  * Constructor.
  *
@@ -304,6 +315,15 @@ protected void prepareDeletePayStatement(String table)
  *
  * @return			empty message if the all the field verify correctly
  */
+
+
+public String[][] getRecords()
+{
+        String [][] results = super.getRecords();       
+        
+	return results;
+}
+
 @Override
 protected String verifyRecord()
 {
@@ -361,6 +381,20 @@ public boolean updateRecord() throws SQLException, IllegalStateException
 
 	throw new IllegalStateException(message.trim());
 }
+public boolean setPayRecord(String ssn) throws SQLException, IllegalStateException
+{
+	String message = verifyRecord();
+	if( message.isEmpty() && super.setRecord()  )
+	{            
+            preparedInsertStatement.setInt(1, getGrossSales());
+            preparedInsertStatement.setDouble(2, getCommissionRate());
+            preparedInsertStatement.setDouble(3, getBonus());
+            preparedInsertStatement.setString(4, ssn);     
+            return !preparedInsertStatement.execute();
+	}
+
+	throw new IllegalStateException(message.trim());
+}
 public boolean deleteRecord() throws SQLException
 {
             prepareDeleteStatement();
@@ -370,20 +404,17 @@ public boolean deleteRecord() throws SQLException
             }           
             return !preparedDeleteStatement.execute();             
 }
-public boolean deletePayRecord() throws SQLException
-{
-    
-            prepareDeletePayStatement(super.getEmployeeType());
-            
-            preparedDeleteStatement.setString(1, getSocialSecurityNumber()); 
-                      
-            return !preparedDeleteStatement.execute();             
-}
+
 @Override
     public JPanel showInputView(String[] data) {
+    
+
+    preparedSelectAllStatement = model.prepareSelectAllStatement(table, columns);    
+    payResults = model.getRecords(preparedSelectAllStatement, table, columns);   
+        
     final JPanel panel1 = super.showInputView(data);
     final JPanel panel2 = new JPanel();
-    controller.populateNextPayField(panel2, "Gross Sales", new ActionListener()
+    controller.populateNextPayField(panel2, "Gross Sales", payResults[row][payGross],  new ActionListener()
 		{
 			@Override
 			public void actionPerformed(ActionEvent e)
@@ -400,7 +431,7 @@ public boolean deletePayRecord() throws SQLException
 			}
 		});
 
-	controller.populateNextPayField(panel2, "Commission Rate", new ActionListener()
+	controller.populateNextPayField(panel2, "Commission Rate", payResults[row][commRate],  new ActionListener()
 		{
 			@Override
 			public void actionPerformed(ActionEvent e)
@@ -416,7 +447,7 @@ public boolean deletePayRecord() throws SQLException
 				}
 			}
 		});
-        controller.populateNextPayField(panel2, "Base Salary", new ActionListener()
+        controller.populateNextPayField(panel2, "Base Salary", payResults[row][payBase],  new ActionListener()
 		{
 			@Override
 			public void actionPerformed(ActionEvent e)
@@ -433,7 +464,7 @@ public boolean deletePayRecord() throws SQLException
 			}
 		});
 
-	controller.populateNextPayField(panel2, "Bonus",  new ActionListener()
+	controller.populateNextPayField(panel2, "Bonus", payResults[row][payBonus],   new ActionListener()
 		{
 			@Override
 			public void actionPerformed(ActionEvent e)
