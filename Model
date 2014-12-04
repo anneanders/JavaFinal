@@ -103,6 +103,8 @@ public PreparedStatement prepareSelectAllStatement(String table, String... colum
 			statement.append(" FROM ").append(table).append(";").toString());
 }
 
+
+
 /**
  * Get all the tuples (rows) from the given relation (table).
  *
@@ -121,29 +123,16 @@ public String[][] getRecords(PreparedStatement preparedStatement, String table, 
 			{
 				/* Map into which to accumulate the row that was obtained. */
 				List<String> row = new LinkedList<>();
-				for( String column: columns )
+				for( String column: columns ){
 					row.add(resultSet.getObject(column).toString());
+                                        //System.out.println("resultSetObejct: " + resultSet.getObject(column).toString());
+                                }
 				values.add(row.toArray(new String[row.size()]));
 			}
 	} catch(SQLException sqle){}
 	return values.toArray(new String[values.size()][]);
 }
-public String[][] getPayRecords(PreparedStatement preparedStatement, String table, String... columns)
-{
-	List<String[]> values = new LinkedList<>();
-	try{
-		ResultSet resultSet = preparedStatement.executeQuery();
-		while( resultSet.next() )
-			{
-				/* Map into which to accumulate the row that was obtained. */
-				List<String> row = new LinkedList<>();
-				for( String column: columns )
-					row.add(resultSet.getObject(column).toString());
-				values.add(row.toArray(new String[row.size()]));
-			}
-	} catch(SQLException sqle){}
-	return values.toArray(new String[values.size()][]);
-}
+
 /**
  * Finished with the model.
  */
